@@ -198,18 +198,19 @@
             <button class="tab" id="tab-list">View Credentials</button>
         </div>
         <div class="tab-content active" id="add-content">
-            <form id="addPasswordForm" class="add-password-form">
-                <label for="website">Website</label>
-                <input type="text" id="website" placeholder="Website" required>
-                <label for="username">Username</label>
-                <input type="text" id="username" placeholder="Username" required>
-                <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Password" required>
-                <div class="password-strength" id="passwordStrength">
-                    <div class="password-strength-bar" id="passwordStrengthBar" style="width:0%;background:#eee;"></div>
-                </div>
-                <button type="submit">Add Password</button>
-            </form>
+            <!-- Update your form element -->
+<form id="addPasswordForm" class="add-password-form" onsubmit="saveCredential(event)">
+    <label for="website">Website</label>
+    <input type="text" id="website" placeholder="Website" required>
+    <label for="username">Username</label>
+    <input type="text" id="username" placeholder="Username" required>
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="Password" required>
+    <div class="password-strength" id="passwordStrength">
+        <div class="password-strength-bar" id="passwordStrengthBar"></div>
+    </div>
+    <button type="submit">Save Credential</button>
+</form>
         </div>
         <div class="tab-content" id="list-content">
             <div class="credentials-header">

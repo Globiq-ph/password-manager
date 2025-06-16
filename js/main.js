@@ -51,14 +51,31 @@ document.addEventListener('DOMContentLoaded', () => {
     let allCredentials = [];
 
     async function loadPasswords() {
+        const passwordList = document.getElementById('passwordList');
         try {
-            console.log('Fetching credentials...');
-            const credentials = await api.getCredentials();
-            allCredentials = credentials;
-            renderCredentials(credentials);
+            const response = await fetch('/api/credentials');
+            const credentials = await response.json();
+            
+            if (credentials.length === 0) {
+                passwordList.innerHTML = '<p style="color:#800000;">No credentials saved yet.</p>';
+                return;
+            }
+
+            passwordList.innerHTML = credentials.map(cred => `
+                <div class="password-item" id="credential-${cred._id}">
+                    <h3>${cred.name}</h3>
+                    <p><strong>Username:</strong> ${cred.username}</p>
+                    <div class="password-field">
+                        <strong>Password:</strong> 
+                        <input type="password" value="${cred.password}" readonly>
+                        <button onclick="togglePassword(this)">Show</button>
+                    </div>
+                    <button onclick="deleteCredential('${cred._id}')" class="delete-btn">Delete</button>
+                </div>
+            `).join('');
         } catch (error) {
-            console.error('Failed to load passwords:', error);
-            passwordList.innerHTML = '<p style="color:red;">Error loading passwords. Please try again later.</p>';
+            console.error('Error loading passwords:', error);
+            passwordList.innerHTML = '<p style="color:red;">Error loading credentials. Please try again.</p>';
         }
     }    function renderCredentials(credentials) {
         if (!Array.isArray(credentials) || credentials.length === 0) {
@@ -189,24 +206,49 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPasswords();
 });
 
-function saveCredential(name, username, password) {
-    fetch('/api/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, username, password }),
-    })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to save credential');
-            }
-            return response.json();
-        })
-        .then(data => {
-            alert(data.message);
-            // Optionally refresh the credential list
-        })
-        .catch(error => {
-            console.error(error);
-            alert('Failed to save credential');
+async function saveCredential(event) {
+    event.preventDefault();
+    
+    const website = document.getElementById('website').value;
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const response = await fetch('/api/credentials', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: website,  // Changed from credentialName to name to match server
+                username,
+                password
+            })
         });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Credential saved successfully!');
+            document.getElementById('addPasswordForm').reset();
+            // Switch to list tab and refresh credentials
+            document.getElementById('tab-list').click();
+            await loadPasswords();
+        } else {
+            throw new Error(data.error || 'Failed to save credential');
+        }
+    } catch (error) {
+        alert('Error saving credential: ' + error.message);
+    }
+}
+
+function togglePassword(button) {
+    const passwordInput = button.previousElementSibling;
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        button.textContent = 'Hide';
+    } else {
+        passwordInput.type = 'password';
+        button.textContent = 'Show';
+    }
 }

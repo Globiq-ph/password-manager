@@ -1,5 +1,3 @@
-import { deleteCredential as apiDeleteCredential } from './api.js';
-
 const API_BASE_URL = '/api';
 
 const api = {
