@@ -150,13 +150,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to delete a credential
     function deleteCredential(button) {
         const credentialId = button.parentElement.getAttribute('data-id');
-        fetch(`/api/credentials/${credentialId}`, { method: 'DELETE' })
-            .then(response => {
-                if (response.ok) {
-                    button.parentElement.remove();
-                } else {
-                    alert('Failed to delete credential');
-                }
+        deleteCredential(credentialId)
+            .then(() => {
+                button.parentElement.remove();
+            })
+            .catch(() => {
+                alert('Failed to delete credential');
             });
     }
 

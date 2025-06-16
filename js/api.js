@@ -1,3 +1,5 @@
+import { deleteCredential as apiDeleteCredential } from './api.js';
+
 const API_BASE_URL = '/api';
 
 const api = {
@@ -48,6 +50,7 @@ const api = {
         } catch (error) {
             console.error('Error adding credential:', error);
             throw new Error(`Failed to add credential: ${error.message}`);
+        }
     },
 
     async deleteCredential(id) {
@@ -57,3 +60,18 @@ const api = {
         return await response.json();
     }
 };
+
+export const deleteCredential = async (credentialId) => {
+    try {
+        const response = await fetch(`/api/credentials/${credentialId}`, { method: 'DELETE' });
+        if (!response.ok) {
+            throw new Error('Failed to delete credential');
+        }
+        return response.json();
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+export default api;
