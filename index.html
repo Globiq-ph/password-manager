@@ -132,6 +132,60 @@
             cursor: pointer;
             font-weight: bold;
         }
+        /* Additional styles for search and mass delete */
+        .credentials-header {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .search-bar {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 12px 40px 12px 15px;
+            border: 2px solid var(--maroon);
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--maroon);
+        }
+
+        .mass-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .credential-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .credential-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        mark {
+            background: #ffe066;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body>
@@ -158,13 +212,28 @@
             </form>
         </div>
         <div class="tab-content" id="list-content">
+            <div class="credentials-header">
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Search credentials...">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                <div class="mass-actions">
+                    <button id="deleteSelectedBtn" class="mass-action-btn">Delete Selected</button>
+                </div>
+            </div>
             <div id="passwordList" class="password-list">
                 <!-- Passwords will be displayed here -->
             </div>
         </div>
     </div>
     <script src="js/api.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/credential-manager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            credentialManager = new CredentialManager();
+            // ... rest of your existing DOMContentLoaded code ...
+        });
+    </script>
     <script>
     // Tab navigation
     const tabAdd = document.getElementById('tab-add');
@@ -201,7 +270,8 @@
         if (score === 4) color = '#5cb85c';
         strengthBar.style.width = percent + '%';
         strengthBar.style.background = color;
-    });    </script>
+    });
+    </script>
     <script>
         // Define the API module
         const API_BASE_URL = '/api';
