@@ -152,11 +152,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to delete a credential
     function deleteCredentialHandler(button) {
         const credentialId = button.parentElement.getAttribute('data-id');
-        deleteCredential(credentialId)
-            .then(() => {
+        fetch(`/api/credentials/${credentialId}`, { method: 'DELETE' })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to delete credential');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
                 button.parentElement.remove();
             })
-            .catch(() => {
+            .catch(error => {
+                console.error(error);
                 alert('Failed to delete credential');
             });
     }
@@ -187,3 +195,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial load
     loadPasswords();
 });
+
+function saveCredential(name, username, password) {
+    fetch('/api/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, username, password }),
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to save credential');
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert(data.message);
+            // Optionally refresh the credential list
+        })
+        .catch(error => {
+            console.error(error);
+            alert('Failed to save credential');
+        });
+}

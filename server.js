@@ -57,19 +57,14 @@ app.get('/api/debug', async (req, res) => {
 // API Routes for credentials
 app.post('/api/credentials', async (req, res) => {
     try {
-        console.log('Received credential creation request:', {
-            website: req.body.website,
-            username: req.body.username,
-            hasPassword: !!req.body.password
-        });
-
+        const { name, username, password } = req.body;
         // Encrypt the password
-        const encryptedPassword = encrypt(req.body.password);
+        const encryptedPassword = encrypt(password);
         
         // Create new credential with encrypted password
         const credential = new Credential({
-            website: req.body.website,
-            username: req.body.username,
+            name,
+            username,
             password: {
                 iv: encryptedPassword.iv,
                 encryptedData: encryptedPassword.encryptedData,
@@ -83,13 +78,13 @@ app.post('/api/credentials', async (req, res) => {
         // Send back credential without sensitive data
         const responseCredential = {
             _id: savedCredential._id,
-            website: savedCredential.website,
+            name: savedCredential.name,
             username: savedCredential.username,
             createdAt: savedCredential.createdAt,
             updatedAt: savedCredential.updatedAt
         };
         
-        res.json(responseCredential);
+        res.status(201).send({ message: 'Credential saved successfully', credential: responseCredential });
     } catch (err) {
         console.error('Credential creation error:', err);
         res.status(400).json({ error: err.message });
@@ -125,19 +120,12 @@ app.get('/api/credentials', async (req, res) => {
 // Delete credential
 app.delete('/api/credentials/:id', async (req, res) => {
     try {
-        console.log('Attempting to delete credential with ID:', req.params.id);
-        const result = await Credential.findByIdAndDelete(req.params.id);
-        
-        if (!result) {
-            console.log('Credential not found with ID:', req.params.id);
-            return res.status(404).json({ error: 'Credential not found' });
-        }
-        
-        console.log('Successfully deleted credential with ID:', req.params.id);
-        res.json({ message: 'Credential deleted successfully' });
-    } catch (err) {
-        console.error('Error deleting credential:', err);
-        res.status(500).json({ error: err.message });
+        const { id } = req.params;
+        await Credential.findByIdAndDelete(id);
+        res.status(200).send({ message: 'Credential deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: 'Failed to delete credential' });
     }
 });
 
