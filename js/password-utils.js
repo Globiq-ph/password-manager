@@ -47,21 +47,26 @@ function checkPasswordStrength(password) {
 
 function updatePasswordStrength(password) {
     const strength = checkPasswordStrength(password);
-    const meter = document.getElementById('passwordStrengthMeter');
-    const text = document.getElementById('passwordStrengthText');
+    const strengthBar = document.querySelector('.password-strength-bar');
+    const strengthText = document.getElementById('passwordStrengthText');
     
-    meter.style.width = strength + '%';
+    // Update the strength bar
+    strengthBar.style.width = `${strength}%`;
     
+    // Update color based on strength
     if (strength < 40) {
-        meter.style.backgroundColor = '#ff4d4d';
-        text.textContent = 'Weak';
+        strengthBar.style.backgroundColor = '#ff4444';
+        strengthText.textContent = 'Password Strength: Weak';
     } else if (strength < 70) {
-        meter.style.backgroundColor = '#ffd700';
-        text.textContent = 'Moderate';
+        strengthBar.style.backgroundColor = '#ffbb33';
+        strengthText.textContent = 'Password Strength: Medium';
     } else {
-        meter.style.backgroundColor = '#00cc44';
-        text.textContent = 'Strong';
+        strengthBar.style.backgroundColor = '#00C851';
+        strengthText.textContent = 'Password Strength: Strong';
     }
     
-    return strength;
+    if (password === '') {
+        strengthText.textContent = 'Password Strength: Not Set';
+        strengthBar.style.width = '0';
+    }
 }

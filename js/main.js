@@ -428,3 +428,199 @@ document.addEventListener('DOMContentLoaded', function() {
     // Start with Add Credential tab active
     switchTab('addCredential');
 });
+
+// Initialize UI elements
+document.addEventListener('DOMContentLoaded', () => {
+    // Add event listeners for tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            const tabName = e.target.getAttribute('data-tab');
+            switchTab(tabName);
+        });
+    });
+
+    // Add event listener for password input
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+        passwordInput.addEventListener('input', (e) => {
+            updatePasswordStrength(e.target.value);
+        });
+    }
+
+    // Add event listener for search
+    const searchInput = document.getElementById('searchCredentials');
+    if (searchInput) {
+        searchInput.addEventListener('input', handleSearch);
+    }
+
+    // Initial tab setup
+    switchTab('addCredential');
+});
+
+function switchTab(tabName) {
+    // Remove active class from all tabs and contents
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    // Add active class to selected tab and content
+    const selectedTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+    const selectedContent = document.getElementById(`${tabName}Tab`);
+
+    if (selectedTab && selectedContent) {
+        selectedTab.classList.add('active');
+        selectedContent.classList.add('active');
+
+        // Load credentials if viewing credentials tab
+        if (tabName === 'viewCredentials') {
+            loadCredentials();
+        }
+    }
+}
+
+async function saveCredential() {
+    try {
+        const websiteInput = document.getElementById('website');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+
+        // Validate inputs
+        if (!websiteInput.value || !usernameInput.value || !passwordInput.value) {
+            showNotification('Please fill in all fields', 'error');
+            return;
+        }
+
+        const credential = {
+            name: websiteInput.value,
+            username: usernameInput.value,
+            password: passwordInput.value
+        };
+
+        // Use the API module to save credential
+        await api.addCredential(credential);
+        
+        showNotification('Credential saved successfully', 'success');
+        clearForm();
+        switchTab('viewCredentials');
+    } catch (error) {
+        console.error('Error saving credential:', error);
+        showNotification(error.message || 'Error saving credential', 'error');
+    }
+}
+
+async function loadCredentials() {
+    try {
+        const credentials = await api.getCredentials();
+        renderCredentialsList(credentials);
+    } catch (error) {
+        console.error('Error loading credentials:', error);
+        showNotification('Error loading credentials', 'error');
+    }
+}
+
+function renderCredentialsList(credentials) {
+    const container = document.getElementById('credentialsList');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!credentials || credentials.length === 0) {
+        container.innerHTML = '<div class="no-credentials">No credentials saved yet.</div>';
+        return;
+    }
+
+    credentials.forEach(cred => {
+        const card = document.createElement('div');
+        card.className = 'credential-card';
+        card.innerHTML = `
+            <button class="delete-btn" onclick="deleteCredential('${cred._id}')">
+                <i class="fas fa-trash"></i>
+            </button>
+            <h3>${escapeHtml(cred.name)}</h3>
+            <div class="field">
+                <label>Username</label>
+                <div>${escapeHtml(cred.username)}</div>
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <div class="password-container">
+                    <input type="password" value="${escapeHtml(cred.password)}" readonly>
+                    <button class="toggle-password" onclick="togglePassword(this)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function clearForm() {
+    const inputs = ['website', 'username', 'password'];
+    inputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+    });
+    updatePasswordStrength('');
+}
+
+function handleSearch(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const cards = document.querySelectorAll('.credential-card');
+    
+    cards.forEach(card => {
+        const name = card.querySelector('h3').textContent.toLowerCase();
+        const username = card.querySelector('.field div').textContent.toLowerCase();
+        
+        if (name.includes(searchTerm) || username.includes(searchTerm)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function togglePassword(button) {
+    const input = button.parentElement.querySelector('input');
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+async function deleteCredential(id) {
+    if (!confirm('Are you sure you want to delete this credential?')) {
+        return;
+    }
+
+    try {
+        await api.deleteCredential(id);
+        showNotification('Credential deleted successfully', 'success');
+        loadCredentials();
+    } catch (error) {
+        console.error('Error deleting credential:', error);
+        showNotification('Error deleting credential', 'error');
+    }
+}
+
+function showNotification(message, type = 'info') {
+    // For now, using alert, but you can implement a better notification system
+    alert(message);
+}
