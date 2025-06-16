@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const { encrypt, decrypt } = require('./utils/encryption');
@@ -10,12 +11,24 @@ const Credential = require('./models/credential');
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "frame-ancestors": ["'self'", "https://teams.microsoft.com"],
+            "img-src": ["'self'", "data:", "https:"],
+            "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
+        }
+    }
+}));
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true
 }));
 app.use(express.json());
+
+// Serve static files
+app.use(express.static(path.join(__dirname, './')));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -91,6 +104,11 @@ app.delete('/api/credentials/:id', async (req, res) => {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok' });
+});
+
+// Catch-all route to serve index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Error handling middleware
