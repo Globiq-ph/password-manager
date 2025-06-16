@@ -63,15 +63,33 @@ app.post('/api/credentials', async (req, res) => {
             hasPassword: !!req.body.password
         });
 
+        // Encrypt the password
+        const encryptedPassword = encrypt(req.body.password);
+        
+        // Create new credential with encrypted password
         const credential = new Credential({
             website: req.body.website,
             username: req.body.username,
-            password: encrypt(req.body.password)
+            password: {
+                iv: encryptedPassword.iv,
+                encryptedData: encryptedPassword.encryptedData,
+                tag: encryptedPassword.tag
+            }
         });
 
         const savedCredential = await credential.save();
         console.log('Credential saved successfully:', savedCredential._id);
-        res.json(savedCredential);
+        
+        // Send back credential without sensitive data
+        const responseCredential = {
+            _id: savedCredential._id,
+            website: savedCredential.website,
+            username: savedCredential.username,
+            createdAt: savedCredential.createdAt,
+            updatedAt: savedCredential.updatedAt
+        };
+        
+        res.json(responseCredential);
     } catch (err) {
         console.error('Credential creation error:', err);
         res.status(400).json({ error: err.message });
@@ -82,7 +100,22 @@ app.get('/api/credentials', async (req, res) => {
     try {
         const credentials = await Credential.find({});
         console.log('Retrieved credentials count:', credentials.length);
-        res.json(credentials);
+
+        // Decrypt passwords for response
+        const decryptedCredentials = credentials.map(cred => {
+            const doc = cred.toObject();
+            try {
+                if (doc.password && doc.password.iv && doc.password.encryptedData && doc.password.tag) {
+                    doc.password = decrypt(doc.password);
+                }
+            } catch (decryptError) {
+                console.error('Failed to decrypt password:', decryptError);
+                doc.password = '*** Failed to decrypt ***';
+            }
+            return doc;
+        });
+
+        res.json(decryptedCredentials);
     } catch (err) {
         console.error('Error fetching credentials:', err);
         res.status(500).json({ error: err.message });
