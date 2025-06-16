@@ -52,60 +52,38 @@ app.get('/api/debug', async (req, res) => {
     }
 });
 
-// API Routes
+// API Routes for credentials
 app.post('/api/credentials', async (req, res) => {
     try {
-        const { website, username, password } = req.body;
         console.log('Received credential creation request:', {
-            website,
-            username,
-            hasPassword: !!password
+            website: req.body.website,
+            username: req.body.username,
+            hasPassword: !!req.body.password
         });
 
-        if (!website || !username || !password) {
-            return res.status(400).json({
-                success: false,
-                error: "Missing required fields"
-            });
-        }
-
-        const encryptedPassword = encrypt(password);
         const credential = new Credential({
-            website,
-            username,
-            password: encryptedPassword
+            website: req.body.website,
+            username: req.body.username,
+            password: encrypt(req.body.password)
         });
 
         const savedCredential = await credential.save();
         console.log('Credential saved successfully:', savedCredential._id);
-        res.json({
-            success: true,
-            credential: savedCredential
-        });
+        res.json(savedCredential);
     } catch (err) {
         console.error('Credential creation error:', err);
-        res.status(400).json({
-            success: false,
-            error: err.message
-        });
+        res.status(400).json({ error: err.message });
     }
 });
 
 app.get('/api/credentials', async (req, res) => {
     try {
-        const credentials = await Credential.find({}).lean();
-        // Decrypt passwords
-        const decryptedCredentials = credentials.map(cred => ({
-            ...cred,
-            password: decrypt(cred.password)
-        }));
-        res.json(decryptedCredentials);
-    } catch (error) {
-        console.error('Retrieve credentials error:', error);
-        res.status(500).json({
-            success: false,
-            error: "Failed to retrieve credentials"
-        });
+        const credentials = await Credential.find({});
+        console.log('Retrieved credentials count:', credentials.length);
+        res.json(credentials);
+    } catch (err) {
+        console.error('Error fetching credentials:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
