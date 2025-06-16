@@ -4,17 +4,18 @@ services:
     env: node
     buildCommand: npm install
     startCommand: npm start
-    envVars:
-      - key: NODE_ENV
+    plan: free
+    region: singapore
+    healthCheckPath: /api/health
+    port: 3000
+    envVars:      - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
       - key: MONGODB_URI
-        sync: false
-      - key: JWT_SECRET
-        sync: false
+        value: mongodb+srv://vincentnbation1:Zp8hAe473OmcwjGS@cluster0.zu5suxb.mongodb.net/passwordmanager?retryWrites=true&w=majority
       - key: ENCRYPTION_KEY
-        sync: false
+        value: Qw8rT2vB5nL6pZ1xJ7sM3eV0aH9bC4dF
     headers:
       - path: /*
         name: X-Frame-Options

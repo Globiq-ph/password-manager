@@ -21,7 +21,8 @@ const api = {
     },
     
     async addCredential(credential) {
-        try {            console.log('Adding new credential:', credential.name);
+        try {
+            console.log('Adding new credential:', credential.name);
             
             if (!credential.name || !credential.username || !credential.password) {
                 throw new Error('All fields are required (Name, Username, and Password)');
@@ -33,7 +34,11 @@ const api = {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify(credential)
+                body: JSON.stringify({
+                    name: credential.name, // ensure 'name' is sent
+                    username: credential.username,
+                    password: credential.password
+                })
             });
             
             if (!response.ok) {

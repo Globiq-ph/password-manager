@@ -207,7 +207,10 @@ process.on('unhandledRejection', (err) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0'; // This ensures the app listens on all network interfaces
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Port:', PORT);
 });

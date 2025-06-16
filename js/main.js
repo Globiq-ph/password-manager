@@ -2,7 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const addPasswordForm = document.getElementById('addPasswordForm');
     const passwordList = document.getElementById('passwordList');
     const passwordInput = document.getElementById('password');
-    const strengthBar = document.getElementById('passwordStrengthBar');    // Add search bar and bulk delete button above the list
+    const strengthBar = document.getElementById('passwordStrengthBar');
+    
+    // Add search bar and bulk delete button above the list
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.placeholder = 'Search credentials...';
@@ -17,88 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
     bulkDeleteBtn.style.marginBottom = '10px';
     passwordList.parentElement.insertBefore(bulkDeleteBtn, passwordList);
 
-    addPasswordForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        try {
-            const credential = {
-                website: document.getElementById('website').value,
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value
-            };
-            
-            if (!credential.website || !credential.username || !credential.password) {
-                throw new Error('All fields are required');
-            }
-
-            console.log('Submitting credential for:', credential.website);
-            const result = await api.addCredential(credential);
-            console.log('Credential added successfully:', result);
-            
-            if (!result._id) {
-                throw new Error('Invalid response from server');
-            }
-
-            addPasswordForm.reset();
-            await loadPasswords();
-            // Switch to list tab after adding
-            document.getElementById('tab-list').click();
-        } catch (error) {
-            console.error('Failed to add credential:', error);
-            alert(`Failed to add password: ${error.message}`);
-        }
-    });
-
     let allCredentials = [];
 
-    async function loadPasswords() {
-        const passwordList = document.getElementById('passwordList');
-        try {
-            const response = await fetch('/api/credentials');
-            const credentials = await response.json();
-            
-            if (credentials.length === 0) {
-                passwordList.innerHTML = '<p style="color:#800000;">No credentials saved yet.</p>';
-                return;
-            }
-
-            passwordList.innerHTML = credentials.map(cred => `
-                <div class="password-item" id="credential-${cred._id}">
-                    <h3>${cred.name}</h3>
-                    <p><strong>Username:</strong> ${cred.username}</p>
-                    <div class="password-field">
-                        <strong>Password:</strong> 
-                        <input type="password" value="${cred.password}" readonly>
-                        <button onclick="togglePassword(this)">Show</button>
-                    </div>
-                    <button onclick="deleteCredential('${cred._id}')" class="delete-btn">Delete</button>
-                </div>
-            `).join('');
-        } catch (error) {
-            console.error('Error loading passwords:', error);
-            passwordList.innerHTML = '<p style="color:red;">Error loading credentials. Please try again.</p>';
-        }
-    }    function renderCredentials(credentials) {
+    // Function to render credentials
+    function renderCredentials(credentials) {
         if (!Array.isArray(credentials) || credentials.length === 0) {
             passwordList.innerHTML = '<p style="color:#800000;">No credentials saved yet.</p>';
             return;
         }
         
         passwordList.innerHTML = credentials.map(cred => `
-            <div class="credential-item" data-id="${cred._id}">
-                <div class="credential-info">
-                    <strong>${cred.website}</strong>
-                    <span>${cred.username}</span>
-                </div>
-                <div class="credential-actions">
-                    <button onclick="deleteCredentialHandler('${cred._id}')" class="delete-btn">Delete</button>
-                </div>
-            </div>
-        `).join('');
-        }
-        passwordList.innerHTML = credentials.map(cred => `
-            <div class="password-item" data-website="${cred.website.toLowerCase()}" data-username="${cred.username.toLowerCase()}" id="credential-${cred._id}">
+            <div class="password-item" id="credential-${cred._id}">
                 <input type="checkbox" class="select-credential" data-id="${cred._id}" style="margin-right:8px;">
-                <h3 style="display:inline;">${cred.website}</h3>
+                <h3 style="display:inline;">${cred.name}</h3>
                 <p>Username: ${cred.username}</p>
                 <p class="password-field">
                     Password: 
@@ -111,14 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Search functionality
-    searchBar.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        const filtered = allCredentials.filter(cred =>
-            cred.website.toLowerCase().includes(query) ||
-            cred.username.toLowerCase().includes(query)
-        );
-        renderCredentials(filtered);
-    });
+    const searchBar = document.getElementById('searchBar');
+    if (searchBar) {
+        searchBar.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = allCredentials.filter(cred =>
+                cred.name.toLowerCase().includes(query) ||
+                cred.username.toLowerCase().includes(query)
+            );
+            renderCredentials(filtered);
+        });
+    }
 
     // Event delegation for show/hide password and delete
     passwordList.addEventListener('click', async (e) => {
@@ -156,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (confirm(`Are you sure you want to delete ${selected.length} selected credential(s)?`)) {
             try {
-                // Use your API for bulk delete if available, otherwise delete one by one
                 if (api.deleteCredentials) {
                     await api.deleteCredentials(selected);
                 } else {
@@ -171,77 +106,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Function to delete a credential
-    async function deleteCredentialHandler(credentialId) {
+    // Load passwords function
+    async function loadPasswords() {
         try {
-            await fetch(`/api/credentials/${credentialId}`, { 
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            await loadPasswords(); // Reload the list after deletion
+            const response = await fetch('/api/credentials');
+            const credentials = await response.json();
+            allCredentials = credentials; // Store credentials globally
+            renderCredentials(credentials);
         } catch (error) {
-            console.error('Failed to delete credential:', error);
-            alert('Failed to delete credential');
+            console.error('Error loading passwords:', error);
+            passwordList.innerHTML = '<p style="color:red;">Error loading credentials. Please try again.</p>';
         }
     }
 
-    // Function to filter credentials based on search input
-    function filterCredentials(searchValue) {
-        const filteredCredentials = allCredentials.filter(cred => 
-            cred.website.toLowerCase().includes(searchValue.toLowerCase()) ||
-            cred.username.toLowerCase().includes(searchValue.toLowerCase())
-        );
-        renderCredentials(filteredCredentials);
-    }    // Add search functionality
-    const searchBar = document.getElementById('searchBar');
-    if (searchBar) {
-        searchBar.addEventListener('input', function(e) {
-            filterCredentials(e.target.value);
-        });
+    // Save credential function
+    async function saveCredential(event) {
+        event.preventDefault();
+        
+        const name = document.getElementById('website').value;
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const response = await fetch('/api/credentials', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name,
+                    username,
+                    password
+                })
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('Credential saved successfully!');
+                document.getElementById('addPasswordForm').reset();
+                await loadPasswords();
+            } else {
+                throw new Error(data.error || 'Failed to save credential');
+            }
+        } catch (error) {
+            alert('Error saving credential: ' + error.message);
+        }
     }
 
-    // Load passwords when the page loads
+    // Add form submit handler
+    addPasswordForm.addEventListener('submit', saveCredential);
+
+    // Load passwords when page loads
     loadPasswords();
 });
 
-async function saveCredential(event) {
-    event.preventDefault();
-    
-    const website = document.getElementById('website').value;
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-
-    try {
-        const response = await fetch('/api/credentials', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                name: website,  // Changed from credentialName to name to match server
-                username,
-                password
-            })
-        });
-
-        const data = await response.json();
-        
-        if (response.ok) {
-            alert('Credential saved successfully!');
-            document.getElementById('addPasswordForm').reset();
-            // Switch to list tab and refresh credentials
-            document.getElementById('tab-list').click();
-            await loadPasswords();
-        } else {
-            throw new Error(data.error || 'Failed to save credential');
-        }
-    } catch (error) {
-        alert('Error saving credential: ' + error.message);
-    }
-}
-
+// Toggle password visibility
 function togglePassword(button) {
     const passwordInput = button.previousElementSibling;
     if (passwordInput.type === 'password') {
@@ -253,8 +173,9 @@ function togglePassword(button) {
     }
 }
 
+// Form validation
 function validateForm() {
-    const name = document.getElementById('name').value.trim();
+    const name = document.getElementById('website').value.trim();
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
 
@@ -263,31 +184,4 @@ function validateForm() {
         return false;
     }
     return true;
-}
-
-async function handleAddCredential(event) {
-    event.preventDefault();
-    
-    if (!validateForm()) {
-        return;
-    }
-
-    const credential = {
-        name: document.getElementById('name').value.trim(),
-        username: document.getElementById('username').value.trim(),
-        password: document.getElementById('password').value.trim()
-    };
-
-    try {
-        await api.addCredential(credential);
-        alert('Credential saved successfully!');
-        // Clear the form
-        document.getElementById('addCredentialForm').reset();
-        // Refresh the credentials list if it's visible
-        if (document.getElementById('list-content').classList.contains('active')) {
-            await credentialManager.loadCredentials();
-        }
-    } catch (error) {
-        alert(`Failed to save credential: ${error.message}`);
-    }
 }
