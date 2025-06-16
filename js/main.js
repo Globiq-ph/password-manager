@@ -1,8 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const addPasswordForm = document.getElementById('addPasswordForm');
-    const passwordList = document.getElementById('passwordList');
-
-    addPasswordForm.addEventListener('submit', async (e) => {
+    const passwordList = document.getElementById('passwordList');    addPasswordForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
             const credential = {
@@ -10,19 +8,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 username: document.getElementById('username').value,
                 password: document.getElementById('password').value
             };
-            await api.addCredential(credential);
+            console.log('Submitting credential for:', credential.website);
+            const result = await api.addCredential(credential);
+            console.log('Credential added successfully:', result);
             addPasswordForm.reset();
-            loadPasswords();
+            await loadPasswords();
             // Switch to list tab after adding
             document.getElementById('tab-list').click();
         } catch (error) {
+            console.error('Failed to add credential:', error);
             alert('Failed to add password. Please try again.');
         }
-    });
-
-    async function loadPasswords() {
+    });    async function loadPasswords() {
         try {
+            console.log('Fetching credentials...');
             const credentials = await api.getCredentials();
+            console.log('Fetched credentials:', credentials);
             passwordList.innerHTML = Array.isArray(credentials) && credentials.length === 0
                 ? '<p style="color:#800000;">No credentials saved yet.</p>'
                 : (Array.isArray(credentials) ? credentials.map(cred => `

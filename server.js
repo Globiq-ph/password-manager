@@ -40,30 +40,53 @@ app.use('/api/', limiter);
 // Connect to MongoDB
 connectDB();
 
+// Debug route
+app.get('/api/debug', async (req, res) => {
+    try {
+        const credentials = await Credential.find({});
+        console.log('Stored credentials:', credentials);
+        res.json({ count: credentials.length, credentials });
+    } catch (err) {
+        console.error('Debug route error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // API Routes
 app.post('/api/credentials', async (req, res) => {
     try {
         const { website, username, password } = req.body;
+        console.log('Received credential creation request:', {
+            website,
+            username,
+            hasPassword: !!password
+        });
+
         if (!website || !username || !password) {
             return res.status(400).json({
                 success: false,
                 error: "Missing required fields"
             });
         }
-        // Encrypt password
+
         const encryptedPassword = encrypt(password);
         const credential = new Credential({
             website,
             username,
             password: encryptedPassword
         });
-        await credential.save();
-        res.json({ success: true, id: credential._id });
-    } catch (error) {
-        console.error('Save credential error:', error);
-        res.status(500).json({
+
+        const savedCredential = await credential.save();
+        console.log('Credential saved successfully:', savedCredential._id);
+        res.json({
+            success: true,
+            credential: savedCredential
+        });
+    } catch (err) {
+        console.error('Credential creation error:', err);
+        res.status(400).json({
             success: false,
-            error: "Failed to save credential"
+            error: err.message
         });
     }
 });
