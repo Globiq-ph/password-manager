@@ -1,18 +1,14 @@
-import { deleteCredential } from './api.js';
-
 document.addEventListener('DOMContentLoaded', () => {
     const addPasswordForm = document.getElementById('addPasswordForm');
     const passwordList = document.getElementById('passwordList');
     const passwordInput = document.getElementById('password');
-    const strengthBar = document.getElementById('passwordStrengthBar');
-
-    // Add search bar and bulk delete button above the list
-    const searchBar = document.createElement('input');
-    searchBar.type = 'text';
-    searchBar.placeholder = 'Search credentials...';
-    searchBar.id = 'searchBar';
-    searchBar.style.marginBottom = '10px';
-    passwordList.parentElement.insertBefore(searchBar, passwordList);
+    const strengthBar = document.getElementById('passwordStrengthBar');    // Add search bar and bulk delete button above the list
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search credentials...';
+    searchInput.id = 'searchBar';
+    searchInput.style.marginBottom = '10px';
+    passwordList.parentElement.insertBefore(searchInput, passwordList);
 
     const bulkDeleteBtn = document.createElement('button');
     bulkDeleteBtn.textContent = 'Delete Selected';
@@ -64,12 +60,23 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to load passwords:', error);
             passwordList.innerHTML = '<p style="color:red;">Error loading passwords. Please try again later.</p>';
         }
-    }
-
-    function renderCredentials(credentials) {
+    }    function renderCredentials(credentials) {
         if (!Array.isArray(credentials) || credentials.length === 0) {
             passwordList.innerHTML = '<p style="color:#800000;">No credentials saved yet.</p>';
             return;
+        }
+        
+        passwordList.innerHTML = credentials.map(cred => `
+            <div class="credential-item" data-id="${cred._id}">
+                <div class="credential-info">
+                    <strong>${cred.website}</strong>
+                    <span>${cred.username}</span>
+                </div>
+                <div class="credential-actions">
+                    <button onclick="deleteCredentialHandler('${cred._id}')" class="delete-btn">Delete</button>
+                </div>
+            </div>
+        `).join('');
         }
         passwordList.innerHTML = credentials.map(cred => `
             <div class="password-item" data-website="${cred.website.toLowerCase()}" data-username="${cred.username.toLowerCase()}" id="credential-${cred._id}">
@@ -147,52 +154,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Add functionality for search bar, delete button, and select button
-
     // Function to delete a credential
-    function deleteCredentialHandler(button) {
-        const credentialId = button.parentElement.getAttribute('data-id');
-        fetch(`/api/credentials/${credentialId}`, { method: 'DELETE' })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to delete credential');
+    async function deleteCredentialHandler(credentialId) {
+        try {
+            await fetch(`/api/credentials/${credentialId}`, { 
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-                return response.json();
-            })
-            .then(data => {
-                alert(data.message);
-                button.parentElement.remove();
-            })
-            .catch(error => {
-                console.error(error);
-                alert('Failed to delete credential');
             });
+            await loadPasswords(); // Reload the list after deletion
+        } catch (error) {
+            console.error('Failed to delete credential:', error);
+            alert('Failed to delete credential');
+        }
     }
 
     // Function to filter credentials based on search input
-    function filterCredentials() {
-        const searchValue = document.getElementById('searchBar').value.toLowerCase();
-        const credentials = document.querySelectorAll('.credential-item');
-        credentials.forEach(item => {
-            const credentialText = item.textContent.toLowerCase();
-            item.style.display = credentialText.includes(searchValue) ? '' : 'none';
+    function filterCredentials(searchValue) {
+        const filteredCredentials = allCredentials.filter(cred => 
+            cred.website.toLowerCase().includes(searchValue.toLowerCase()) ||
+            cred.username.toLowerCase().includes(searchValue.toLowerCase())
+        );
+        renderCredentials(filteredCredentials);
+    }    // Add search functionality
+    const searchBar = document.getElementById('searchBar');
+    if (searchBar) {
+        searchBar.addEventListener('input', function(e) {
+            filterCredentials(e.target.value);
         });
     }
 
-    // Add event listeners for search bar and delete buttons
-    window.onload = function() {
-        const searchBar = document.getElementById('searchBar');
-        if (searchBar) {
-            searchBar.addEventListener('input', filterCredentials);
-        }
-
-        const deleteButtons = document.querySelectorAll('.delete-button');
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', () => deleteCredentialHandler(button));
-        });
-    };
-
-    // Initial load
+    // Load passwords when the page loads
     loadPasswords();
 });
 
