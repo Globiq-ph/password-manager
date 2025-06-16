@@ -10,35 +10,32 @@ const Credential = require('./models/credential');
 
 const app = express();
 
-// Security middleware
+// Detailed request logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    next();
+});
+
+// Security middleware with relaxed CSP for development
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-            "frame-ancestors": ["'self'", "https://teams.microsoft.com"],
-            "img-src": ["'self'", "data:", "https:"],
-            "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-            "connect-src": ["'self'", "https://api.render.com", "https://mongodb.com"]
-        }
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+    contentSecurityPolicy: false // Temporarily disable CSP for debugging
 }));
+
+// CORS configuration
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: true,
     credentials: true
 }));
+
 app.use(express.json());
 
 // Serve static files
 app.use(express.static(path.join(__dirname)));
-app.use('/js', express.static(path.join(__dirname, 'js')));
-app.use('/css', express.static(path.join(__dirname, 'css')));
 
 // Rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: 100
 });
 app.use('/api/', limiter);
 
@@ -49,7 +46,7 @@ connectDB();
 app.get('/api/debug', async (req, res) => {
     try {
         const credentials = await Credential.find({});
-        console.log('Stored credentials:', credentials);
+        console.log('Debug route - Stored credentials:', credentials.length);
         res.json({ count: credentials.length, credentials });
     } catch (err) {
         console.error('Debug route error:', err);
@@ -59,29 +56,34 @@ app.get('/api/debug', async (req, res) => {
 
 // API Routes for credentials
 app.post('/api/credentials', async (req, res) => {
+    console.log('Received POST request to /api/credentials');
+    console.log('Request body:', { 
+        name: req.body.name,
+        username: req.body.username,
+        hasPassword: !!req.body.password 
+    });
+
     try {
         const { name, username, password } = req.body;
 
         // Validate request body
         if (!name || !username || !password) {
-            return res.status(400).json({ 
-                error: 'Missing required fields', 
-                required: ['name', 'username', 'password'],
-                received: { name: !!name, username: !!username, password: !!password }
+            console.log('Validation failed:', { 
+                hasName: !!name, 
+                hasUsername: !!username, 
+                hasPassword: !!password 
             });
-        }
-
-        // Log attempt to save (without sensitive data)
-        console.log('Attempting to save credential for:', { name, username });
-
-        // Encrypt the password
-        let encryptedPassword;
-        try {
-            encryptedPassword = encrypt(password);
-        } catch (encryptError) {
-            console.error('Encryption error:', encryptError);
-            return res.status(500).json({ error: 'Failed to encrypt password' });
-        }
+            return res.status(400).json({ 
+                error: 'Missing required fields',
+                received: { 
+                    hasName: !!name, 
+                    hasUsername: !!username, 
+                    hasPassword: !!password 
+                }
+            });
+        }        // Encrypt the password
+        const encryptedPassword = encrypt(password);
+        console.log('Password encrypted successfully');
 
         // Create new credential with encrypted password
         const credential = new Credential({
@@ -99,118 +101,74 @@ app.post('/api/credentials', async (req, res) => {
         console.log('Credential saved successfully:', savedCredential._id);
         
         // Send back credential without sensitive data
-        const responseCredential = {
-            _id: savedCredential._id,
-            name: savedCredential.name,
-            username: savedCredential.username,
-            createdAt: savedCredential.createdAt,
-            updatedAt: savedCredential.updatedAt
-        };
-        
-        res.status(201).send({ message: 'Credential saved successfully', credential: responseCredential });
+        res.status(201).json({
+            message: 'Credential saved successfully',
+            credential: {
+                _id: savedCredential._id,
+                name: savedCredential.name,
+                username: savedCredential.username
+            }
+        });
     } catch (err) {
-        console.error('Credential creation error:', err);
-        if (err.name === 'ValidationError') {
-            return res.status(400).json({ error: 'Validation error', details: err.message });
-        }
-        res.status(500).json({ error: 'Failed to save credential' });
+        console.error('Error saving credential:', err);
+        res.status(500).json({ error: 'Failed to save credential', details: err.message });
     }
 });
 
 app.get('/api/credentials', async (req, res) => {
+    console.log('Received GET request to /api/credentials');
     try {
-        const credentials = await Credential.find({});
-        console.log('Retrieved credentials count:', credentials.length);
-
-        // Decrypt passwords for response
-        const decryptedCredentials = credentials.map(cred => {
-            const doc = cred.toObject();
+        const credentials = await Credential.find({}).lean();
+        console.log('Raw credentials from DB:', credentials);
+        console.log('Retrieved credentials count:', credentials.length);const sanitizedCredentials = credentials.map(cred => {
             try {
-                if (doc.password && doc.password.iv && doc.password.encryptedData && doc.password.tag) {
-                    doc.password = decrypt(doc.password);
-                }
-            } catch (decryptError) {
-                console.error('Failed to decrypt password:', decryptError);
-                doc.password = '*** Failed to decrypt ***';
+                const decryptedPassword = decrypt({
+                    iv: cred.password.iv,
+                    encryptedData: cred.password.encryptedData,
+                    tag: cred.password.tag
+                });
+                return {
+                    _id: cred._id,
+                    name: cred.name,
+                    username: cred.username,
+                    password: decryptedPassword
+                };
+            } catch (err) {
+                console.error('Error decrypting password for credential:', cred._id, err);
+                return {
+                    _id: cred._id,
+                    name: cred.name,
+                    username: cred.username,
+                    password: '*** Failed to decrypt ***'
+                };
             }
-            return doc;
         });
 
-        res.json(decryptedCredentials);
+        console.log('Sending credentials to client:', sanitizedCredentials.length);
+        res.json(sanitizedCredentials);
     } catch (err) {
         console.error('Error fetching credentials:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Failed to fetch credentials', details: err.message });
     }
 });
 
-// Delete credential
 app.delete('/api/credentials/:id', async (req, res) => {
+    console.log('Received DELETE request for credential:', req.params.id);
     try {
         const { id } = req.params;
-        await Credential.findByIdAndDelete(id);
-        res.status(200).send({ message: 'Credential deleted successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: 'Failed to delete credential' });
-    }
-});
-
-// Delete multiple credentials
-app.delete('/api/credentials', async (req, res) => {
-    try {
-        const { ids } = req.body;
-        if (!Array.isArray(ids)) {
-            return res.status(400).json({ error: 'Invalid request format' });
+        const result = await Credential.findByIdAndDelete(id);
+        console.log('Delete result:', result);
+        if (!result) {
+            return res.status(404).json({ error: 'Credential not found' });
         }
-
-        const result = await Credential.deleteMany({ _id: { $in: ids } });
-        res.json({ message: `${result.deletedCount} credentials deleted successfully` });
-    } catch (err) {
-        console.error('Error deleting credentials:', err);
-        res.status(500).json({ error: err.message });
+        res.json({ message: 'Credential deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting credential:', error);
+        res.status(500).json({ error: 'Failed to delete credential', details: error.message });
     }
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok' });
-});
-
-// Catch-all route to serve index.html
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({
-        success: false,
-        error: 'Internal server error'
-    });
-});
-
-// Global error handlers
-process.on('uncaughtException', (err) => {
-    console.error('UNCAUGHT EXCEPTION! 💥');
-    console.error(err.name, err.message);
-    console.error(err.stack);
-    process.exit(1);
-});
-
-process.on('unhandledRejection', (err) => {
-    console.error('UNHANDLED REJECTION! 💥');
-    console.error(err.name, err.message);
-    console.error(err.stack);
-    process.exit(1);
-});
-
-// Start server
 const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0'; // This ensures the app listens on all network interfaces
-
-app.listen(PORT, HOST, () => {
-    console.log(`Server running on http://${HOST}:${PORT}`);
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('Port:', PORT);
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });

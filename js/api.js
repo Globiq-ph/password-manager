@@ -3,27 +3,32 @@ const API_BASE_URL = '/api';
 const api = {
     async getCredentials() {
         try {
-            console.log('Fetching credentials from API...');
-            const response = await fetch(`${API_BASE_URL}/credentials`);
+            console.log('Fetching credentials...');
+            const response = await fetch(`${API_BASE_URL}/credentials`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
             
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('Server response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
-            console.log('Credentials fetched successfully:', { count: data.length });
+            console.log('Fetched credentials:', data);
             return data;
         } catch (error) {
             console.error('Error fetching credentials:', error);
-            throw new Error(`Failed to fetch credentials: ${error.message}`);
+            throw error;
         }
     },
-    
-    async addCredential(credential) {
+      async addCredential(credential) {
         try {
-            console.log('Adding new credential:', credential.name);
-            
+            console.log('Adding credential:', credential);
             if (!credential.name || !credential.username || !credential.password) {
                 throw new Error('All fields are required (Name, Username, and Password)');
             }
@@ -34,46 +39,49 @@ const api = {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
-                    name: credential.name, // ensure 'name' is sent
+                    name: credential.name,
                     username: credential.username,
                     password: credential.password
                 })
             });
             
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `Failed to add credential: ${response.status}`);
+                const errorText = await response.text();
+                console.error('Server response:', errorText);
+                throw new Error('Failed to add credential');
             }
             
             const result = await response.json();
-            console.log('Credential added successfully:', { id: result._id });
+            console.log('Credential added successfully:', result);
             return result;
         } catch (error) {
             console.error('Error adding credential:', error);
-            throw new Error(`Failed to add credential: ${error.message}`);
+            throw error;
         }
     },
-
+    
     async deleteCredential(id) {
-        const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
-            method: 'DELETE'
-        });
-        return await response.json();
-    }
-};
-
-export const deleteCredential = async (credentialId) => {
-    try {
-        const response = await fetch(`/api/credentials/${credentialId}`, { method: 'DELETE' });
-        if (!response.ok) {
-            throw new Error('Failed to delete credential');
+        try {
+            const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to delete credential');
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error deleting credential:', error);
+            throw error;
         }
-        return response.json();
-    } catch (error) {
-        console.error(error);
-        throw error;
     }
 };
 
-export default api;
+// Make the api object available globally
+window.api = api;
