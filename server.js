@@ -17,9 +17,12 @@ app.use(helmet({
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
             "frame-ancestors": ["'self'", "https://teams.microsoft.com"],
             "img-src": ["'self'", "data:", "https:"],
-            "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
+            "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            "connect-src": ["'self'", "https://api.render.com", "https://mongodb.com"]
         }
-    }
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -162,6 +165,21 @@ app.use((err, req, res, next) => {
         success: false,
         error: 'Internal server error'
     });
+});
+
+// Global error handlers
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION! 💥');
+    console.error(err.name, err.message);
+    console.error(err.stack);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+    console.error('UNHANDLED REJECTION! 💥');
+    console.error(err.name, err.message);
+    console.error(err.stack);
+    process.exit(1);
 });
 
 // Start server
