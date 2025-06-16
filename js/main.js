@@ -234,21 +234,72 @@ function validateForm() {
     return true;
 }
 
+// Tab Switching
 function switchTab(tabName) {
+    // Remove active class from all tabs and content
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     
-    const selectedTab = document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`);
-    const selectedContent = document.getElementById(`${tabName}Tab`);
-    
-    selectedTab.classList.add('active');
-    selectedContent.classList.add('active');
+    // Add active class to selected tab and content
+    document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+    document.getElementById(`${tabName}Tab`).classList.add('active');
 
+    // Load credentials if switching to view tab
     if (tabName === 'viewCredentials') {
         loadCredentials();
     }
 }
 
+// Save new credential
+function saveCredential() {
+    const website = document.getElementById('website').value;
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    if (!website || !username || !password) {
+        showNotification('Please fill in all fields', 'error');
+        return;
+    }
+
+    const credential = {
+        name: website,  // Using name instead of website to match backend
+        username: username,
+        password: password
+    };
+
+    fetch('/api/credentials', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(credential),
+        credentials: 'include'
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to save credential');
+        return response.json();
+    })
+    .then(data => {
+        showNotification('Credential saved successfully', 'success');
+        clearForm();
+        // Switch to view credentials tab and refresh the list
+        switchTab('viewCredentials');
+    })
+    .catch(error => {
+        console.error('Error saving credential:', error);
+        showNotification('Error saving credential', 'error');
+    });
+}
+
+// Clear the form after saving
+function clearForm() {
+    document.getElementById('website').value = '';
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    updatePasswordStrength('');
+}
+
+// Load and display credentials
 function loadCredentials() {
     fetch('/api/credentials', {
         method: 'GET',
@@ -267,10 +318,16 @@ function loadCredentials() {
     });
 }
 
+// Render the credentials list
 function renderCredentialsList(credentials) {
     const credentialsContainer = document.getElementById('credentialsList');
     credentialsContainer.innerHTML = '';
     
+    if (credentials.length === 0) {
+        credentialsContainer.innerHTML = '<p class="no-credentials">No credentials saved yet.</p>';
+        return;
+    }
+
     credentials.forEach(cred => {
         const credentialCard = document.createElement('div');
         credentialCard.className = 'credential-card';
@@ -297,6 +354,7 @@ function renderCredentialsList(credentials) {
     });
 }
 
+// Delete a credential
 function deleteCredential(credentialId) {
     if (confirm('Are you sure you want to delete this credential?')) {
         fetch(`/api/credentials/${credentialId}`, {
@@ -309,7 +367,7 @@ function deleteCredential(credentialId) {
         .then(response => {
             if (response.ok) {
                 showNotification('Credential deleted successfully', 'success');
-                loadCredentials(); // Reload the credentials list
+                loadCredentials();
             } else {
                 throw new Error('Failed to delete credential');
             }
@@ -321,7 +379,23 @@ function deleteCredential(credentialId) {
     }
 }
 
-// Add search functionality
+// Toggle password visibility
+function togglePassword(button) {
+    const passwordInput = button.parentElement.querySelector('input');
+    const icon = button.querySelector('i');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Search functionality
 document.getElementById('searchCredentials').addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase();
     const credentialCards = document.querySelectorAll('.credential-card');
@@ -336,4 +410,21 @@ document.getElementById('searchCredentials').addEventListener('input', function(
             card.style.display = 'none';
         }
     });
+});
+
+// Initialize password strength meter
+document.getElementById('password').addEventListener('input', function(e) {
+    updatePasswordStrength(e.target.value);
+});
+
+// Show notification
+function showNotification(message, type) {
+    // Implementation depends on your notification system
+    alert(message);
+}
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    // Start with Add Credential tab active
+    switchTab('addCredential');
 });

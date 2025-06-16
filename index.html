@@ -224,157 +224,53 @@
     </style>
 </head>
 <body>
+    <h1 class="app-title">GlobiQ Password Manager</h1>
+
     <div class="container">
-        <header>
-            <h1 style="color: var(--maroon); text-align:center; margin-bottom: 24px;">GlobiQ Password Manager</h1>
-        </header>        <div class="content-wrapper">
-            <!-- Update your form element -->
-<form id="addPasswordForm" class="add-password-form" onsubmit="saveCredential(event)">
-    <label for="website">Website</label>
-    <input type="text" id="website" placeholder="Website" required>
-    <label for="username">Username</label>
-    <input type="text" id="username" placeholder="Username" required>
-    <label for="password">Password</label>
-    <input type="password" id="password" placeholder="Password" required>
-    <div class="password-strength">
-        <div class="password-strength-bar" id="strengthBar"></div>
-    </div>
-    <div id="strengthText" class="password-strength-text">Password Strength: Not Set</div>
-    <button type="submit">Save Credential</button>
-</form>
-        </div>
         <div class="tabs">
-    <div class="tab active" onclick="switchTab('addCredential')">Add Credential</div>
-    <div class="tab" onclick="switchTab('viewCredentials')">View Credentials</div>
-</div>
-
-<div id="addCredentialTab" class="tab-content active">
-    <!-- Add Credential Form -->
-    <form id="addPasswordForm" class="add-password-form" onsubmit="saveCredential(event)">
-        <label for="website">Website</label>
-        <input type="text" id="website" placeholder="Website" required>
-        <label for="username">Username</label>
-        <input type="text" id="username" placeholder="Username" required>
-        <label for="password">Password</label>
-        <input type="password" id="password" placeholder="Password" required>
-        <div class="password-strength">
-            <div class="password-strength-bar" id="strengthBar"></div>
+            <div class="tab active" onclick="switchTab('addCredential')">Add Credential</div>
+            <div class="tab" onclick="switchTab('viewCredentials')">View Credentials</div>
         </div>
-        <div id="strengthText" class="password-strength-text">Password Strength: Not Set</div>
-        <button type="submit">Save Credential</button>
-    </form>
-</div>
 
-<div id="viewCredentialsTab" class="tab-content">
-    <div class="search-container">
-        <input type="text" id="searchCredentials" placeholder="Search credentials..." class="input-field">
+        <div id="addCredentialTab" class="tab-content active">
+            <div class="add-password-form">
+                <div class="form-group">
+                    <label for="website">Website</label>
+                    <input type="text" id="website" class="input-field" placeholder="Enter website name">
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" class="input-field" placeholder="Enter username">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-input-group">
+                        <input type="password" id="password" class="input-field" placeholder="Enter password">
+                        <div class="password-strength">
+                            <div class="password-strength-bar"></div>
+                        </div>
+                        <div id="passwordStrengthText">Password Strength: Not Set</div>
+                    </div>
+                </div>
+
+                <button onclick="saveCredential()" class="save-button">Save Credential</button>
+            </div>
+        </div>
+
+        <div id="viewCredentialsTab" class="tab-content">
+            <div class="search-container">
+                <input type="text" id="searchCredentials" class="input-field" placeholder="Search credentials...">
+            </div>
+            <div id="credentialsList" class="credentials-grid">
+                <!-- Credentials will be populated here -->
+            </div>
+        </div>
     </div>
-    <div id="credentialsList" class="credentials-grid">
-        <!-- Credentials will be populated here -->
-    </div>
-</div>
-    </div>
+
+    <script src="js/password-utils.js"></script>
     <script src="js/api.js"></script>
-    <script src="js/credential-manager.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            credentialManager = new CredentialManager();
-            // ... rest of your existing DOMContentLoaded code ...
-        });
-    </script>
-    <script>
-    // Tab navigation
-    const tabAdd = document.getElementById('tab-add');
-    const tabList = document.getElementById('tab-list');
-    const addContent = document.getElementById('add-content');
-    const listContent = document.getElementById('list-content');
-    tabAdd.onclick = () => {
-        tabAdd.classList.add('active');
-        tabList.classList.remove('active');
-        addContent.classList.add('active');
-        listContent.classList.remove('active');
-    };
-    tabList.onclick = () => {
-        tabList.classList.add('active');
-        tabAdd.classList.remove('active');
-        listContent.classList.add('active');
-        addContent.classList.remove('active');
-    };
-    // Password strength indicator
-    const passwordInput = document.getElementById('password');
-    const strengthBar = document.getElementById('passwordStrengthBar');
-    passwordInput.addEventListener('input', function() {
-        const val = passwordInput.value;
-        let score = 0;
-        if (val.length >= 8) score++;
-        if (/[A-Z]/.test(val)) score++;
-        if (/[0-9]/.test(val)) score++;
-        if (/[^A-Za-z0-9]/.test(val)) score++;
-        let percent = (score / 4) * 100;
-        let color = '#eee';
-        if (score === 1) color = '#d9534f';
-        if (score === 2) color = '#f0ad4e';
-        if (score === 3) color = '#5bc0de';
-        if (score === 4) color = '#5cb85c';
-        strengthBar.style.width = percent + '%';
-        strengthBar.style.background = color;
-    });
-    </script>
-    <script>
-        // Define the API module
-        const API_BASE_URL = '/api';
-        const api = {
-            async getCredentials() {
-                try {
-                    console.log('Fetching credentials from API...');
-                    const response = await fetch(`${API_BASE_URL}/credentials`);
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    console.log('Credentials fetched successfully:', { count: data.length });
-                    return data;
-                } catch (error) {
-                    console.error('Error fetching credentials:', error);
-                    throw new Error(`Failed to fetch credentials: ${error.message}`);
-                }
-            },
-            
-            async addCredential(credential) {
-                try {
-                    console.log('Adding new credential for website:', credential.website);
-                    
-                    if (!credential.website || !credential.username || !credential.password) {
-                        throw new Error('All fields are required');
-                    }
-                    
-                    const response = await fetch(`${API_BASE_URL}/credentials`, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify(credential)
-                    });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.error || `Failed to add credential: ${response.status}`);
-                    }
-                    
-                    const result = await response.json();
-                    console.log('Credential added successfully:', { id: result._id });
-                    return result;
-                } catch (error) {
-                    console.error('Error adding credential:', error);
-                    throw new Error(`Failed to add credential: ${error.message}`);
-                }
-            }
-        };
-    </script>
     <script src="js/main.js"></script>
 </body>
 </html>
