@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const addPasswordForm = document.getElementById('addPasswordForm');
     const passwordList = document.getElementById('passwordList');
+    const passwordInput = document.getElementById('password');
+    const strengthBar = document.getElementById('passwordStrengthBar');
 
     addPasswordForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -41,16 +43,19 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (!Array.isArray(credentials)) {
                 throw new Error('Invalid response from server');
-            }
-
-            passwordList.innerHTML = credentials.length === 0
+            }            passwordList.innerHTML = credentials.length === 0
                 ? '<p style="color:#800000;">No credentials saved yet.</p>'
                 : credentials.map(cred => `
                     <div class="password-item">
                         <h3>${cred.website}</h3>
                         <p>Username: ${cred.username}</p>
-                        <p>Password: <span class="password-hidden">********</span></p>
-                        <button onclick="showPassword(this, '${cred.password}')">Show Password</button>
+                        <p class="password-field">
+                            Password: 
+                            <span class="password-text">********</span>
+                            <button class="show-password-btn" data-password="${cred.password}">
+                                Show Password
+                            </button>
+                        </p>
                     </div>
                 `).join('');
         } catch (error) {
@@ -58,6 +63,23 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordList.innerHTML = '<p style="color:red;">Error loading passwords. Please try again later.</p>';
         }
     }
+
+    // Add event delegation for show password buttons
+    passwordList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('show-password-btn')) {
+            const button = e.target;
+            const passwordText = button.parentElement.querySelector('.password-text');
+            const password = button.dataset.password;
+
+            if (button.textContent === 'Show Password') {
+                passwordText.textContent = password;
+                button.textContent = 'Hide Password';
+            } else {
+                passwordText.textContent = '********';
+                button.textContent = 'Show Password';
+            }
+        }
+    });
 
     // Initial load
     loadPasswords();

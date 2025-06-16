@@ -122,18 +122,17 @@ app.get('/api/credentials', async (req, res) => {
     }
 });
 
-// Add DELETE endpoint
+// Delete credential
 app.delete('/api/credentials/:id', async (req, res) => {
     try {
-        const { id } = req.params;
-        await Credential.findByIdAndDelete(id);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Delete credential error:', error);
-        res.status(500).json({
-            success: false,
-            error: "Failed to delete credential"
-        });
+        const result = await Credential.findByIdAndDelete(req.params.id);
+        if (!result) {
+            return res.status(404).json({ error: 'Credential not found' });
+        }
+        res.json({ message: 'Credential deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting credential:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 

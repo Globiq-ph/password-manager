@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobiQ Password Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>GlobiQ Password Manager</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --maroon: #800000;
@@ -13,14 +13,32 @@
             --white: #fff;
             --gray: #f4f4f4;
         }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
         body {
             background: var(--maroon-bg);
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 20px;
         }
+
+        h1.app-title {
+            font-size: 2.5em;
+            color: var(--maroon);
+            text-align: center;
+            margin: 20px 0;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
         .tabs {
             display: flex;
             border-bottom: 2px solid var(--maroon);
             margin-bottom: 24px;
+            border-radius: 8px 8px 0 0;
+            overflow: hidden;
         }
+
         .tab {
             flex: 1;
             padding: 14px 0;
@@ -28,10 +46,18 @@
             cursor: pointer;
             background: var(--gray);
             color: var(--maroon);
-            font-weight: bold;
+            font-weight: 600;
             border: none;
             outline: none;
-            transition: background 0.2s, color 0.2s;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab i {
+            font-size: 1.2em;
         }
         .tab.active {
             background: var(--maroon);
