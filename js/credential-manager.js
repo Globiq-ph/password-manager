@@ -40,11 +40,10 @@ class CredentialManager {
             return;
         }
 
-        this.passwordList.innerHTML = credentials.map(cred => `
-            <div class="password-item credential-item" data-id="${cred._id}">
+        this.passwordList.innerHTML = credentials.map(cred => `            <div class="password-item credential-item" data-id="${cred._id}">
                 <input type="checkbox" class="credential-checkbox" data-id="${cred._id}">
                 <div class="credential-content">
-                    <h3>${this.highlightSearch(cred.website)}</h3>
+                    <h3>${this.highlightSearch(cred.name)}</h3>
                     <p><strong>Username:</strong> ${this.highlightSearch(cred.username)}</p>
                     <p>
                         <strong>Password:</strong> 

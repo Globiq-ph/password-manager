@@ -61,9 +61,28 @@ app.get('/api/debug', async (req, res) => {
 app.post('/api/credentials', async (req, res) => {
     try {
         const { name, username, password } = req.body;
+
+        // Validate request body
+        if (!name || !username || !password) {
+            return res.status(400).json({ 
+                error: 'Missing required fields', 
+                required: ['name', 'username', 'password'],
+                received: { name: !!name, username: !!username, password: !!password }
+            });
+        }
+
+        // Log attempt to save (without sensitive data)
+        console.log('Attempting to save credential for:', { name, username });
+
         // Encrypt the password
-        const encryptedPassword = encrypt(password);
-        
+        let encryptedPassword;
+        try {
+            encryptedPassword = encrypt(password);
+        } catch (encryptError) {
+            console.error('Encryption error:', encryptError);
+            return res.status(500).json({ error: 'Failed to encrypt password' });
+        }
+
         // Create new credential with encrypted password
         const credential = new Credential({
             name,
@@ -75,6 +94,7 @@ app.post('/api/credentials', async (req, res) => {
             }
         });
 
+        // Save to database
         const savedCredential = await credential.save();
         console.log('Credential saved successfully:', savedCredential._id);
         
@@ -90,7 +110,10 @@ app.post('/api/credentials', async (req, res) => {
         res.status(201).send({ message: 'Credential saved successfully', credential: responseCredential });
     } catch (err) {
         console.error('Credential creation error:', err);
-        res.status(400).json({ error: err.message });
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({ error: 'Validation error', details: err.message });
+        }
+        res.status(500).json({ error: 'Failed to save credential' });
     }
 });
 

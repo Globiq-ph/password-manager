@@ -252,3 +252,42 @@ function togglePassword(button) {
         button.textContent = 'Show';
     }
 }
+
+function validateForm() {
+    const name = document.getElementById('name').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    if (!name || !username || !password) {
+        alert('Please fill in all fields (Name, Username, and Password)');
+        return false;
+    }
+    return true;
+}
+
+async function handleAddCredential(event) {
+    event.preventDefault();
+    
+    if (!validateForm()) {
+        return;
+    }
+
+    const credential = {
+        name: document.getElementById('name').value.trim(),
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value.trim()
+    };
+
+    try {
+        await api.addCredential(credential);
+        alert('Credential saved successfully!');
+        // Clear the form
+        document.getElementById('addCredentialForm').reset();
+        // Refresh the credentials list if it's visible
+        if (document.getElementById('list-content').classList.contains('active')) {
+            await credentialManager.loadCredentials();
+        }
+    } catch (error) {
+        alert(`Failed to save credential: ${error.message}`);
+    }
+}

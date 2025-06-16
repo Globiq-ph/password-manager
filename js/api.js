@@ -21,11 +21,10 @@ const api = {
     },
     
     async addCredential(credential) {
-        try {
-            console.log('Adding new credential for website:', credential.website);
+        try {            console.log('Adding new credential:', credential.name);
             
-            if (!credential.website || !credential.username || !credential.password) {
-                throw new Error('All fields are required');
+            if (!credential.name || !credential.username || !credential.password) {
+                throw new Error('All fields are required (Name, Username, and Password)');
             }
             
             const response = await fetch(`${API_BASE_URL}/credentials`, {
