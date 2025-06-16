@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h3>${cred.website}</h3>
                         <p>Username: ${cred.username}</p>
                         <p>Password: <span class="masked">*******</span> <button class="show-btn" onclick="showPassword(this)" data-password="${cred.password}">Show</button></p>
+                        <button class="delete-btn" onclick="deleteCredential('${cred._id}')">Delete</button>
                     </div>
                 `).join('') : '<p>Failed to load passwords.</p>');
         } catch (error) {
@@ -40,6 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPasswords();
     // Also reload passwords when switching to list tab
     document.getElementById('tab-list').addEventListener('click', loadPasswords);
+    window.deleteCredential = async function(id) {
+        if (confirm('Are you sure you want to delete this credential?')) {
+            await api.deleteCredential(id);
+            loadPasswords();
+        }
+    };
 });
 
 function showPassword(button) {

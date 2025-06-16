@@ -1,0 +1,1 @@
+This file is a placeholder to trigger file deletions for script.js and playground-1.mongodb.js. Please remove these two files as part of project cleanup.

@@ -37,11 +37,8 @@ app.post('/api/credentials', async (req, res) => {
                 error: "Missing required fields"
             });
         }
-        // Encrypt password if encryption is available, otherwise store as is
-        let encryptedPassword = password;
-        if (typeof encrypt === 'function') {
-            encryptedPassword = encrypt(password);
-        }
+        // Encrypt password
+        const encryptedPassword = encrypt(password);
         const credential = new Credential({
             website,
             username,
@@ -61,10 +58,10 @@ app.post('/api/credentials', async (req, res) => {
 app.get('/api/credentials', async (req, res) => {
     try {
         const credentials = await Credential.find({}).lean();
-        // Decrypt if available
+        // Decrypt passwords
         const decryptedCredentials = credentials.map(cred => ({
             ...cred,
-            password: (typeof decrypt === 'function') ? decrypt(cred.password) : cred.password
+            password: decrypt(cred.password)
         }));
         res.json(decryptedCredentials);
     } catch (error) {
@@ -72,6 +69,21 @@ app.get('/api/credentials', async (req, res) => {
         res.status(500).json({
             success: false,
             error: "Failed to retrieve credentials"
+        });
+    }
+});
+
+// Add DELETE endpoint
+app.delete('/api/credentials/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await Credential.findByIdAndDelete(id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Delete credential error:', error);
+        res.status(500).json({
+            success: false,
+            error: "Failed to delete credential"
         });
     }
 });

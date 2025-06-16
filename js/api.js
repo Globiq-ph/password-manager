@@ -13,5 +13,12 @@ const api = {
             body: JSON.stringify(credential)
         });
         return await response.json();
+    },
+
+    async deleteCredential(id) {
+        const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
+            method: 'DELETE'
+        });
+        return await response.json();
     }
 };
