@@ -48,18 +48,9 @@
             background: var(--gray);
             color: var(--maroon);
             font-weight: 600;
-            border: none;
-            outline: none;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
         }
 
-        .tab i {
-            font-size: 1.2em;
-        }
         .tab.active {
             background: var(--maroon);
             color: var(--white);
@@ -187,6 +178,49 @@
             padding: 0 2px;
             border-radius: 2px;
         }
+
+        #addCredentialTab, #viewCredentialsTab {
+            display: none;
+        }
+
+        #addCredentialTab.active, #viewCredentialsTab.active {
+            display: block;
+        }
+
+        .search-container {
+            margin-bottom: 16px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--maroon);
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .credentials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .credential-card {
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(128,0,0,0.08);
+            padding: 16px;
+        }
+
+        .credential-card h3 {
+            margin-top: 0;
+            color: var(--maroon);
+        }
+
+        .credential-card p {
+            margin: 8px 0;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -209,24 +243,36 @@
     <button type="submit">Save Credential</button>
 </form>
         </div>
-        <div class="tab-content" id="list-content">
-            <div class="credentials-header">
-                <div class="search-bar">
-                    <input type="text" id="searchInput" placeholder="Search credentials...">
-                    <i class="fas fa-search search-icon"></i>
-                </div>
-                <div class="mass-actions">
-                    <button id="deleteSelectedBtn" class="mass-action-btn">Delete Selected</button>
-                </div>
-            </div>
-            <div id="passwordList" class="password-list">
-                <!-- Passwords will be displayed here -->
-                <li class="credential-item" data-id="1">
-    <span>Credential 1</span>
-    <button onclick="deleteCredentialHandler(this)">Delete</button>
-</li>
-            </div>
+        <div class="tabs">
+    <div class="tab active" onclick="switchTab('addCredential')">Add Credential</div>
+    <div class="tab" onclick="switchTab('viewCredentials')">View Credentials</div>
+</div>
+
+<div id="addCredentialTab" class="tab-content active">
+    <!-- Add Credential Form -->
+    <form id="addPasswordForm" class="add-password-form" onsubmit="saveCredential(event)">
+        <label for="website">Website</label>
+        <input type="text" id="website" placeholder="Website" required>
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Username" required>
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Password" required>
+        <div class="password-strength">
+            <div class="password-strength-bar" id="strengthBar"></div>
         </div>
+        <div id="strengthText" class="password-strength-text">Password Strength: Not Set</div>
+        <button type="submit">Save Credential</button>
+    </form>
+</div>
+
+<div id="viewCredentialsTab" class="tab-content">
+    <div class="search-container">
+        <input type="text" id="searchCredentials" placeholder="Search credentials..." class="input-field">
+    </div>
+    <div id="credentialsList" class="credentials-grid">
+        <!-- Credentials will be populated here -->
+    </div>
+</div>
     </div>
     <script src="js/api.js"></script>
     <script src="js/credential-manager.js"></script>

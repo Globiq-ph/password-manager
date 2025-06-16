@@ -5,6 +5,9 @@
     --background-color: #F5F5F5;
     --text-color: #252423;
     --border-color: #E1DFDD;
+    --white: #FFFFFF;
+    --maroon: #800000;
+    --maroon-bg: #600000;
 }
 
 * {
@@ -270,6 +273,64 @@ button:hover {
     padding: 10px;
     background-color: #d4edda;
     border-radius: 4px;
+}
+
+/* View Credentials Section */
+.search-container {
+    margin-bottom: 20px;
+}
+
+.credentials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+}
+
+.credential-card {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.credential-card h3 {
+    color: var(--maroon);
+    margin: 0 0 10px 0;
+}
+
+.credential-card .field {
+    margin-bottom: 10px;
+}
+
+.credential-card .field label {
+    font-weight: 600;
+    color: #666;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.credential-card .password-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.credential-card .delete-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--maroon);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+}
+
+.credential-card .delete-btn:hover {
+    background: var(--maroon-bg);
 }
 
 @media (max-width: 600px) {

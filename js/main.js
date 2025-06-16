@@ -233,3 +233,107 @@ function validateForm() {
     }
     return true;
 }
+
+function switchTab(tabName) {
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    const selectedTab = document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`);
+    const selectedContent = document.getElementById(`${tabName}Tab`);
+    
+    selectedTab.classList.add('active');
+    selectedContent.classList.add('active');
+
+    if (tabName === 'viewCredentials') {
+        loadCredentials();
+    }
+}
+
+function loadCredentials() {
+    fetch('/api/credentials', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(credentials => {
+        renderCredentialsList(credentials);
+    })
+    .catch(error => {
+        console.error('Error loading credentials:', error);
+        showNotification('Error loading credentials', 'error');
+    });
+}
+
+function renderCredentialsList(credentials) {
+    const credentialsContainer = document.getElementById('credentialsList');
+    credentialsContainer.innerHTML = '';
+    
+    credentials.forEach(cred => {
+        const credentialCard = document.createElement('div');
+        credentialCard.className = 'credential-card';
+        credentialCard.innerHTML = `
+            <button class="delete-btn" onclick="deleteCredential('${cred._id}')">
+                <i class="fas fa-trash"></i>
+            </button>
+            <h3>${cred.name}</h3>
+            <div class="field">
+                <label>Username</label>
+                <div>${cred.username}</div>
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <div class="password-container">
+                    <input type="password" value="${cred.password}" readonly>
+                    <button onclick="togglePassword(this)" class="toggle-password">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        credentialsContainer.appendChild(credentialCard);
+    });
+}
+
+function deleteCredential(credentialId) {
+    if (confirm('Are you sure you want to delete this credential?')) {
+        fetch(`/api/credentials/${credentialId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+        })
+        .then(response => {
+            if (response.ok) {
+                showNotification('Credential deleted successfully', 'success');
+                loadCredentials(); // Reload the credentials list
+            } else {
+                throw new Error('Failed to delete credential');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting credential:', error);
+            showNotification('Error deleting credential', 'error');
+        });
+    }
+}
+
+// Add search functionality
+document.getElementById('searchCredentials').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const credentialCards = document.querySelectorAll('.credential-card');
+    
+    credentialCards.forEach(card => {
+        const name = card.querySelector('h3').textContent.toLowerCase();
+        const username = card.querySelector('.field div').textContent.toLowerCase();
+        
+        if (name.includes(searchTerm) || username.includes(searchTerm)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
