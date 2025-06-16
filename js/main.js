@@ -1,3 +1,5 @@
+import { deleteCredential } from './api.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const addPasswordForm = document.getElementById('addPasswordForm');
     const passwordList = document.getElementById('passwordList');
@@ -148,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add functionality for search bar, delete button, and select button
 
     // Function to delete a credential
-    function deleteCredential(button) {
+    function deleteCredentialHandler(button) {
         const credentialId = button.parentElement.getAttribute('data-id');
         deleteCredential(credentialId)
             .then(() => {
@@ -178,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const deleteButtons = document.querySelectorAll('.delete-button');
         deleteButtons.forEach(button => {
-            button.addEventListener('click', () => deleteCredential(button));
+            button.addEventListener('click', () => deleteCredentialHandler(button));
         });
     };
 
