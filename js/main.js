@@ -2,8 +2,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const addPasswordForm = document.getElementById('addPasswordForm');
     const passwordList = document.getElementById('passwordList');
     const passwordInput = document.getElementById('password');
-    const strengthBar = document.getElementById('passwordStrengthBar');
-    
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+
+    // Password strength indicator
+    function updatePasswordStrength(password) {
+        let strength = 0;
+        let message = '';
+
+        // Length check
+        if (password.length >= 8) strength += 25;
+        // Contains number
+        if (/\d/.test(password)) strength += 25;
+        // Contains letter
+        if (/[a-zA-Z]/.test(password)) strength += 25;
+        // Contains special char
+        if (/[^A-Za-z0-9]/.test(password)) strength += 25;
+
+        // Update the visual indicator
+        strengthBar.style.width = strength + '%';
+        
+        if (strength <= 25) {
+            strengthBar.style.backgroundColor = '#ff4444';
+            message = 'Weak';
+        } else if (strength <= 50) {
+            strengthBar.style.backgroundColor = '#ffbb33';
+            message = 'Fair';
+        } else if (strength <= 75) {
+            strengthBar.style.backgroundColor = '#00C851';
+            message = 'Good';
+        } else {
+            strengthBar.style.backgroundColor = '#007E33';
+            message = 'Strong';
+        }
+        
+        strengthText.textContent = 'Password Strength: ' + message;
+    }
+
+    // Password input event listener
+    passwordInput.addEventListener('input', (e) => {
+        updatePasswordStrength(e.target.value);
+    });
+
     // Add search bar and bulk delete button above the list
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
@@ -21,26 +61,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let allCredentials = [];
 
-    // Function to render credentials
+    // Render credentials function
     function renderCredentials(credentials) {
         if (!Array.isArray(credentials) || credentials.length === 0) {
             passwordList.innerHTML = '<p style="color:#800000;">No credentials saved yet.</p>';
             return;
         }
         
-        passwordList.innerHTML = credentials.map(cred => `
+        const credentialsHtml = credentials.map(cred => `
             <div class="password-item" id="credential-${cred._id}">
-                <input type="checkbox" class="select-credential" data-id="${cred._id}" style="margin-right:8px;">
-                <h3 style="display:inline;">${cred.name}</h3>
-                <p>Username: ${cred.username}</p>
-                <p class="password-field">
-                    Password: 
-                    <span class="password-text">********</span>
-                    <button class="show-password-btn" data-password="${cred.password}">Show Password</button>
-                </p>
-                <button class="delete-credential-btn" data-id="${cred._id}" style="color:#fff;background:#800000;border:none;padding:5px 10px;border-radius:4px;">Delete</button>
+                <div class="credential-header">
+                    <h3>${cred.name}</h3>
+                    <input type="checkbox" class="select-credential" data-id="${cred._id}">
+                </div>
+                <div class="credential-body">
+                    <p><strong>Username:</strong> ${cred.username}</p>
+                    <div class="password-field">
+                        <strong>Password:</strong> 
+                        <span class="password-text">********</span>
+                        <button class="show-password-btn" data-password="${cred.password}">Show Password</button>
+                    </div>
+                </div>
+                <div class="credential-actions">
+                    <button class="delete-credential-btn" data-id="${cred._id}">Delete</button>
+                </div>
             </div>
         `).join('');
+
+        passwordList.innerHTML = credentialsHtml;
     }
 
     // Search functionality
