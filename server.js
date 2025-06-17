@@ -19,33 +19,107 @@ app.use((req, res, next) => {
     next();
 });
 
-// Security middleware with relaxed CSP for development
+// Enhanced request logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    console.log('Origin:', req.headers.origin);
+    console.log('Referer:', req.headers.referer);
+    console.log('User-Agent:', req.headers['user-agent']);
+    next();
+});
+
+// Security middleware with Teams-friendly CSP
 app.use(helmet({
-    contentSecurityPolicy: false // Temporarily disable CSP for debugging
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'", "https://*.teams.microsoft.com", "https://*.onrender.com"],
+            connectSrc: ["'self'", "https://*.onrender.com", "https://*.globiq.com", "https://*.teams.microsoft.com", "https://login.microsoftonline.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://res.cdn.office.net", "https://*.onrender.com", "https://*.teams.microsoft.com", "https://statics.teams.cdn.office.net"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://res.cdn.office.net", "https://cdnjs.cloudflare.com", "https://statics.teams.cdn.office.net"],
+            imgSrc: ["'self'", "data:", "https:", "http:", "blob:"],
+            fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com", "https://statics.teams.cdn.office.net"],
+            frameSrc: ["'self'", "https://teams.microsoft.com", "https://*.teams.microsoft.com", "https://*.onrender.com"],
+            frameAncestors: ["'self'", "https://teams.microsoft.com", "https://*.teams.microsoft.com", "https://*.skype.com", "https://dod-teams.microsoft.us", "https://gov-teams.microsoft.us"],
+            workerSrc: ["'self'", "blob:"],
+            formAction: ["'self'", "https://*.teams.microsoft.com", "https://login.microsoftonline.com"],
+            mediaSrc: ["'self'", "https:", "blob:"]
+        }
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: false
 }));
 
-// CORS configuration
+// CORS configuration for Teams
 app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'DELETE', 'UPDATE', 'PUT', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    origin: function(origin, callback) {
+        const allowedOrigins = [
+            'https://teams.microsoft.com',
+            'https://*.teams.microsoft.com',
+            'https://*.skype.com',
+            'https://password-manager-for-teams.onrender.com',
+            'https://dod-teams.microsoft.us',
+            'https://gov-teams.microsoft.us'
+        ];
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        // Check if the origin matches any of our allowed patterns
+        if (allowedOrigins.some(allowed => {
+            if (allowed.includes('*')) {
+                const pattern = allowed.replace('*', '.*');
+                return new RegExp(pattern).test(origin);
+            }
+            return allowed === origin;
+        })) {
+            callback(null, true);
+        } else {
+            console.log(`Origin ${origin} not allowed by CORS`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with'],
+    credentials: true,
+    maxAge: 86400 // CORS preflight cache for 24 hours
 }));
+
+// Handle preflight requests
+app.options('*', cors());
 
 app.use(express.json());
 
 // Serve static files
 app.use(express.static(path.join(__dirname)));
 
+// Config endpoint for Teams
+app.get('/config.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'config.html'));
+});
+
 // Rate limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 1000, // Limit each IP to 1000 requests per windowMs
     message: 'Too many requests from this IP, please try again after 15 minutes',
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    skipFailedRequests: true // Don't count failed requests
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipFailedRequests: true
 });
+
+// Apply rate limiting only to API routes
 app.use('/api/', limiter);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memoryUsage: process.memoryUsage(),
+        headers: req.headers
+    });
+});
 
 // Connect to MongoDB
 connectDB();

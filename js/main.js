@@ -1,3 +1,25 @@
+// Teams SDK initialization
+microsoftTeams.app.initialize().then(() => {
+    console.log('Microsoft Teams SDK initialized');
+    
+    // Get user context
+    microsoftTeams.app.getContext().then((context) => {
+        console.log('Got Teams context:', context);
+        if (context.user) {
+            // Store user info for API calls
+            localStorage.setItem('teamsUserEmail', context.user.userPrincipalName);
+            localStorage.setItem('teamsUserName', context.user.displayName);
+            localStorage.setItem('teamsUserId', context.user.id);
+        }
+    }).catch(error => {
+        console.error('Error getting Teams context:', error);
+    });
+}).catch(error => {
+    console.error('Error initializing Teams SDK:', error);
+    // Continue in web-only mode
+    console.log('Running in web-only mode');
+});
+
 // Initialize Teams if available
 if (window.microsoftTeams) {
     microsoftTeams.initialize();
