@@ -21,10 +21,8 @@ app.use((req, res, next) => {
 
 // Enhanced request logging middleware
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    console.log('Origin:', req.headers.origin);
-    console.log('Referer:', req.headers.referer);
-    console.log('User-Agent:', req.headers['user-agent']);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    console.log('Headers:', req.headers);
     next();
 });
 
@@ -112,13 +110,7 @@ app.use('/api/', limiter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        memoryUsage: process.memoryUsage(),
-        headers: req.headers
-    });
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Connect to MongoDB
@@ -254,6 +246,15 @@ app.delete('/api/credentials/:id', async (req, res) => {
         console.error('Error deleting credential:', error);
         res.status(500).json({ error: 'Failed to delete credential', details: error.message });
     }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(500).json({ 
+        message: 'Internal Server Error',
+        error: err.message 
+    });
 });
 
 const PORT = process.env.PORT || 3000;
