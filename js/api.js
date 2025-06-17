@@ -6,19 +6,22 @@ const api = {
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const error = await response.text();
+                throw new Error(error || `HTTP error! status: ${response.status}`);
             }
             
             return await response.json();
             
         } catch (error) {
             console.error('Error fetching credentials:', error);
-            throw new Error('Failed to fetch credentials');
+            throw error;
         }
     },
 
@@ -31,51 +34,55 @@ const api = {
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
-                body: JSON.stringify({
-                    name: credential.name,
-                    username: credential.username,
-                    password: credential.password
-                })
+                credentials: 'include',
+                body: JSON.stringify(credential)
             });
-            
+
             if (!response.ok) {
                 const error = await response.text();
-                throw new Error(error);
-            }
-            
-            return await response.json();
-            
-        } catch (error) {
-            console.error('Error adding credential:', error);
-            throw new Error('Failed to save credential: ' + error.message);
-        }
-    },
-    
-    async deleteCredential(id) {
-        try {
-            if (!id) {
-                throw new Error('Credential ID is required');
+                throw new Error(error || `HTTP error! status: ${response.status}`);
             }
 
+            return await response.json();
+        } catch (error) {
+            console.error('Error adding credential:', error);
+            throw error;
+        }
+    },
+
+    async deleteCredential(id) {
+        try {
             const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
                 method: 'DELETE',
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to delete credential (${response.status})`);
+                const error = await response.text();
+                throw new Error(error || `HTTP error! status: ${response.status}`);
             }
 
-            return await response.json();
-            
+            return true;
         } catch (error) {
             console.error('Error deleting credential:', error);
-            throw new Error('Failed to delete credential: ' + error.message);
+            throw error;
         }
+    },
+
+    // Helper method to handle response errors
+    async handleResponse(response) {
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error || `HTTP error! status: ${response.status}`);
+        }
+        return response.json();
     }
 };
 

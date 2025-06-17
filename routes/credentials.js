@@ -78,14 +78,28 @@ router.post('/', async (req, res) => {
 // Delete credential
 router.delete('/:id', async (req, res) => {
     try {
-        const result = await Credential.findByIdAndDelete(req.params.id);
-        if (!result) {
+        console.log(`Attempting to delete credential with ID: ${req.params.id}`);
+        
+        if (!req.params.id) {
+            return res.status(400).json({ message: 'Credential ID is required' });
+        }
+
+        const credential = await Credential.findById(req.params.id);
+        
+        if (!credential) {
             return res.status(404).json({ message: 'Credential not found' });
         }
+
+        await Credential.findByIdAndDelete(req.params.id);
+        console.log(`Successfully deleted credential with ID: ${req.params.id}`);
+        
         res.json({ message: 'Credential deleted successfully' });
     } catch (error) {
         console.error('Error deleting credential:', error);
-        res.status(500).json({ message: 'Error deleting credential', error: error.message });
+        res.status(500).json({ 
+            message: 'Error deleting credential', 
+            error: error.message 
+        });
     }
 });
 
