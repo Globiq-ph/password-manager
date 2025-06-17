@@ -7,6 +7,9 @@ const connectDB = async () => {
             throw new Error('MongoDB connection string is missing in environment variables');
         }
 
+        console.log('Connecting to MongoDB...');
+        mongoose.set('debug', true);  // Enable debugging
+
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             serverApi: {
                 version: ServerApiVersion.v1,

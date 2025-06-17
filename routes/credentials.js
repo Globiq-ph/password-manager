@@ -7,14 +7,16 @@ const { encrypt, decrypt } = require('../utils/encryption');
 router.get('/', async (req, res) => {
     try {
         console.log('Fetching credentials from database...');
-        const credentials = await Credential.find({});
+        const credentials = await Credential.find({}).sort({ createdAt: -1 });
         console.log(`Found ${credentials.length} credentials`);
         
         // Decrypt passwords before sending
         const decryptedCredentials = credentials.map(cred => {
             const plainCred = cred.toObject();
             try {
-                plainCred.password = decrypt(plainCred.password);
+                if (plainCred.password.includes(':')) {
+                    plainCred.password = decrypt(plainCred.password);
+                }
             } catch (error) {
                 console.error('Error decrypting password:', error);
                 plainCred.password = '********';

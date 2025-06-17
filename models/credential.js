@@ -8,16 +8,15 @@ const credentialSchema = new mongoose.Schema({
     username: {
         type: String,
         required: true
-    },    password: {
-        iv: {
-            type: String,
-            required: true
-        },
-        encryptedData: {
-            type: String,
-            required: true
-        },
-        tag: {
+    },
+    password: {
+        type: String,
+        required: true
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
             type: String,
             required: true
         }
