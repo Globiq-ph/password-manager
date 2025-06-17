@@ -10,6 +10,9 @@ const Credential = require('./models/credential');
 
 const app = express();
 
+// Trust proxy - required for rate limiting behind reverse proxy
+app.set('trust proxy', 1);
+
 // Detailed request logging middleware
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -35,8 +38,12 @@ app.use(express.static(path.join(__dirname)));
 
 // Rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Limit each IP to 1000 requests per windowMs
+    message: 'Too many requests from this IP, please try again after 15 minutes',
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    skipFailedRequests: true // Don't count failed requests
 });
 app.use('/api/', limiter);
 

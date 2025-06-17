@@ -16,14 +16,6 @@ const credentialSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
-    }
-            type: String,
-            required: true
-        }
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
     },
     updatedAt: {
         type: Date,
