@@ -1,11 +1,7 @@
-// Import Microsoft Teams SDK
-import * as microsoftTeams from "@microsoft/teams-js";
-
-// Initialize Teams
-microsoftTeams.app.initialize().then(() => {
-    console.log("Microsoft Teams initialized");
-    // Get context
-    microsoftTeams.app.getContext().then((context) => {
+// Initialize Microsoft Teams SDK if available
+if (window.microsoftTeams) {
+    microsoftTeams.initialize();
+    microsoftTeams.getContext((context) => {
         console.log("Teams Context:", context);
         // Store user info if needed
         if (context.user) {
@@ -13,11 +9,7 @@ microsoftTeams.app.initialize().then(() => {
             localStorage.setItem('teamsUserName', context.user.displayName);
         }
     });
-}).catch((error) => {
-    console.error("Error initializing Microsoft Teams:", error);
-    // Fall back to regular web mode
-    console.log("Running in web browser mode");
-});
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize password strength elements
@@ -25,19 +17,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const strengthBar = document.querySelector('.password-strength-bar');
     const strengthText = document.getElementById('passwordStrengthText');
 
+    // Add event listeners for password strength
+    if (passwordInput) {
+        passwordInput.addEventListener('input', (e) => {
+            updatePasswordStrength(e.target.value);
+        });
+    }
+
     // Add event listeners for tab switching
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
+            e.preventDefault();
             const tabName = e.target.getAttribute('data-tab');
             switchTab(tabName);
         });
     });
 
-    // Initialize password strength meter
-    if (passwordInput) {
-        passwordInput.addEventListener('input', (e) => {
-            updatePasswordStrength(e.target.value);
-        });
+    // Add event listener for save credential button
+    const saveButton = document.getElementById('saveCredential');
+    if (saveButton) {
+        saveButton.addEventListener('click', saveCredential);
     }
 
     // Initialize search functionality
@@ -54,6 +53,8 @@ function updatePasswordStrength(password) {
     const strengthBar = document.querySelector('.password-strength-bar');
     const strengthText = document.getElementById('passwordStrengthText');
     
+    if (!strengthBar || !strengthText) return;
+    
     let strength = 0;
     
     // Calculate strength
@@ -64,6 +65,7 @@ function updatePasswordStrength(password) {
 
     // Update UI
     strengthBar.style.width = `${strength}%`;
+    strengthBar.style.backgroundColor = strength > 75 ? '#4CAF50' : strength > 50 ? '#FFA500' : '#FF0000';
     
     if (password === '') {
         strengthBar.style.backgroundColor = '#eee';
@@ -108,7 +110,8 @@ function switchTab(tabName) {
     });
 }
 
-async function saveCredential() {
+async function saveCredential(e) {
+    e.preventDefault();
     try {
         const name = document.getElementById('website').value;
         const username = document.getElementById('username').value;
