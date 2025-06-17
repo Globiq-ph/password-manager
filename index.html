@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GlobiQ Password Manager</title>
+    <script src="https://res.cdn.office.net/teams-js/2.14.0/js/MicrosoftTeams.min.js"></script>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -272,5 +273,15 @@
     <script src="js/password-utils.js"></script>
     <script src="js/api.js"></script>
     <script src="js/main.js"></script>
+    <script>
+        // Initialize Microsoft Teams
+        microsoftTeams.app.initialize().then(() => {
+            // Get Teams context
+            microsoftTeams.app.getContext().then((context) => {
+                console.log('Teams Context:', context);
+                // You can use context.user.id, context.team.id, etc.
+            });
+        });
+    </script>
 </body>
 </html>

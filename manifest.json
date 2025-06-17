@@ -1,6 +1,6 @@
 {
-  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
-  "manifestVersion": "1.16",
+    "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+    "manifestVersion": "1.16",
   "version": "2.1.1",
   "id": "f29f2aa1-355e-422b-acba-516c168ae3b5",
   "packageName": "com.globiq.teams.passwordmanager",
@@ -27,7 +27,7 @@
     {
       "entityId": "passwordManager",
       "name": "Password Manager",
-      "contentUrl": "https://globiqlockbox-d2e9dndydpajajdz.southeastasia-01.azurewebsites.net",
+      "contentUrl": "https://password-manager-for-teams.onrender.com",
       "scopes": [
         "personal"
       ]
@@ -35,7 +35,7 @@
   ],
   "configurableTabs": [
     {
-      "configurationUrl": "https://globiqlockbox-d2e9dndydpajajdz.southeastasia-01.azurewebsites.net/configure",
+      "configurationUrl": "https://password-manager-for-teams.onrender.com/configure",
       "canUpdateConfiguration": true,
       "scopes": [
         "team",
@@ -48,6 +48,6 @@
     "messageTeamMembers"
   ],
   "validDomains": [
-    "globiqlockbox-d2e9dndydpajajdz.southeastasia-01.azurewebsites.net"
+    "password-manager-for-teams.onrender.com"
   ]
 }

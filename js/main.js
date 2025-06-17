@@ -1,3 +1,24 @@
+// Import Microsoft Teams SDK
+import * as microsoftTeams from "@microsoft/teams-js";
+
+// Initialize Teams
+microsoftTeams.app.initialize().then(() => {
+    console.log("Microsoft Teams initialized");
+    // Get context
+    microsoftTeams.app.getContext().then((context) => {
+        console.log("Teams Context:", context);
+        // Store user info if needed
+        if (context.user) {
+            localStorage.setItem('teamsUserEmail', context.user.userPrincipalName);
+            localStorage.setItem('teamsUserName', context.user.displayName);
+        }
+    });
+}).catch((error) => {
+    console.error("Error initializing Microsoft Teams:", error);
+    // Fall back to regular web mode
+    console.log("Running in web browser mode");
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize password strength elements
     const passwordInput = document.getElementById('password');
