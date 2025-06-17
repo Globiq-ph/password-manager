@@ -1,7 +1,7 @@
 const API_BASE_URL = '/api';
 
 const api = {
-    async getCredentials() {
+    getCredentials: async function() {
         try {
             console.log('Fetching credentials...');
             const response = await fetch(`${API_BASE_URL}/credentials`, {
@@ -25,9 +25,31 @@ const api = {
             console.error('Error fetching credentials:', error);
             throw error;
         }
-    },
-      async addCredential(credential) {
+    },      async addCredential(credential) {
         try {
+            console.log('Adding credential:', credential);
+            const response = await fetch(`${API_BASE_URL}/credentials`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(credential)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Added credential:', data);
+            return data;
+        } catch (error) {
+            console.error('Error adding credential:', error);
+            throw error;
+        }
             console.log('Adding credential:', credential);
             if (!credential.name || !credential.username || !credential.password) {
                 throw new Error('All fields are required (Name, Username, and Password)');

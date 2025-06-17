@@ -111,32 +111,59 @@ function switchTab(tabName) {
 }
 
 async function saveCredential(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    
     try {
         const name = document.getElementById('website').value;
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
 
+        console.log('Attempting to save credential...');
+
         if (!name || !username || !password) {
+            console.log('Missing required fields');
             alert('Please fill in all fields');
             return;
         }
 
-        const credential = { name, username, password };
-        console.log('Saving credential:', { name, username });
+        const response = await fetch('/api/credentials', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name,
+                username,
+                password
+            })
+        });
 
-        const result = await api.addCredential(credential);
-        console.log('Save result:', result);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Credential saved successfully:', result);
+
+        // Clear form
+        document.getElementById('website').value = '';
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
         
+        // Update password strength UI
+        updatePasswordStrength('');
+        
+        // Show success message
         alert('Credential saved successfully!');
-        clearForm();
         
-        // Reload credentials and switch to view tab
-        await loadCredentials();
+        // Optionally switch to view credentials tab
         switchTab('viewCredentials');
+
     } catch (error) {
         console.error('Error saving credential:', error);
-        alert('Error saving credential: ' + error.message);
+        alert('Failed to save credential. Please try again.');
     }
 }
 
