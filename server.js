@@ -3,89 +3,45 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
-const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const { encrypt, decrypt } = require('./utils/encryption');
 const Credential = require('./models/credential');
 
 const app = express();
 
-// Trust proxy - required for rate limiting behind reverse proxy
-app.set('trust proxy', 1);
-
-// Detailed request logging middleware
-app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    next();
-});
-
-// Enhanced request logging middleware
+// Detailed request logging
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    console.log('Headers:', req.headers);
+    console.log('Request Headers:', req.headers);
+    console.log('Request Body:', req.body);
+    
+    // Log response
+    const oldSend = res.send;
+    res.send = function(data) {
+        console.log('Response:', data);
+        oldSend.apply(res, arguments);
+    };
     next();
 });
 
-// Security middleware with Teams-friendly CSP
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'", "https://*.teams.microsoft.com", "https://*.onrender.com"],
-            connectSrc: ["'self'", "https://*.onrender.com", "https://*.globiq.com", "https://*.teams.microsoft.com", "https://login.microsoftonline.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://res.cdn.office.net", "https://*.onrender.com", "https://*.teams.microsoft.com", "https://statics.teams.cdn.office.net"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://res.cdn.office.net", "https://cdnjs.cloudflare.com", "https://statics.teams.cdn.office.net"],
-            imgSrc: ["'self'", "data:", "https:", "http:", "blob:"],
-            fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com", "https://statics.teams.cdn.office.net"],
-            frameSrc: ["'self'", "https://teams.microsoft.com", "https://*.teams.microsoft.com", "https://*.onrender.com"],
-            frameAncestors: ["'self'", "https://teams.microsoft.com", "https://*.teams.microsoft.com", "https://*.skype.com", "https://dod-teams.microsoft.us", "https://gov-teams.microsoft.us"],
-            workerSrc: ["'self'", "blob:"],
-            formAction: ["'self'", "https://*.teams.microsoft.com", "https://login.microsoftonline.com"],
-            mediaSrc: ["'self'", "https:", "blob:"]
-        }
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginOpenerPolicy: false
-}));
-
-// CORS configuration for Teams
+// CORS configuration
 app.use(cors({
-    origin: function(origin, callback) {
-        const allowedOrigins = [
-            'https://teams.microsoft.com',
-            'https://*.teams.microsoft.com',
-            'https://*.skype.com',
-            'https://password-manager-for-teams.onrender.com',
-            'https://dod-teams.microsoft.us',
-            'https://gov-teams.microsoft.us'
-        ];
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        // Check if the origin matches any of our allowed patterns
-        if (allowedOrigins.some(allowed => {
-            if (allowed.includes('*')) {
-                const pattern = allowed.replace('*', '.*');
-                return new RegExp(pattern).test(origin);
-            }
-            return allowed === origin;
-        })) {
-            callback(null, true);
-        } else {
-            console.log(`Origin ${origin} not allowed by CORS`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with'],
-    credentials: true,
-    maxAge: 86400 // CORS preflight cache for 24 hours
+    origin: '*',  // Allow all origins temporarily for debugging
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 }));
 
-// Handle preflight requests
-app.options('*', cors());
+// Basic security headers
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
+// Parse JSON bodies
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Serve static files
 app.use(express.static(path.join(__dirname)));
@@ -94,19 +50,6 @@ app.use(express.static(path.join(__dirname)));
 app.get('/config.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'config.html'));
 });
-
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // Limit each IP to 1000 requests per windowMs
-    message: 'Too many requests from this IP, please try again after 15 minutes',
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipFailedRequests: true
-});
-
-// Apply rate limiting only to API routes
-app.use('/api/', limiter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

@@ -6,7 +6,7 @@ const { encrypt, decrypt } = require('../utils/encryption');
 // Get all credentials
 router.get('/', async (req, res) => {
     try {
-        console.log('Fetching credentials from database...');
+        console.log('GET /credentials - Fetching all credentials');
         const credentials = await Credential.find({}).sort({ createdAt: -1 });
         console.log(`Found ${credentials.length} credentials`);
         
@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
 
         res.json(decryptedCredentials);
     } catch (error) {
-        console.error('Error fetching credentials:', error);
+        console.error('Error in GET /credentials:', error);
         res.status(500).json({ message: 'Error fetching credentials', error: error.message });
     }
 });
@@ -78,28 +78,26 @@ router.post('/', async (req, res) => {
 // Delete credential
 router.delete('/:id', async (req, res) => {
     try {
-        console.log(`Attempting to delete credential with ID: ${req.params.id}`);
-        
-        if (!req.params.id) {
+        const { id } = req.params;
+        console.log(`DELETE /credentials/${id} - Deleting credential`);
+
+        if (!id) {
+            console.log('No ID provided');
             return res.status(400).json({ message: 'Credential ID is required' });
         }
 
-        const credential = await Credential.findById(req.params.id);
-        
+        const credential = await Credential.findById(id);
         if (!credential) {
+            console.log(`Credential with ID ${id} not found`);
             return res.status(404).json({ message: 'Credential not found' });
         }
 
-        await Credential.findByIdAndDelete(req.params.id);
-        console.log(`Successfully deleted credential with ID: ${req.params.id}`);
-        
+        await Credential.findByIdAndDelete(id);
+        console.log(`Successfully deleted credential ${id}`);
         res.json({ message: 'Credential deleted successfully' });
     } catch (error) {
-        console.error('Error deleting credential:', error);
-        res.status(500).json({ 
-            message: 'Error deleting credential', 
-            error: error.message 
-        });
+        console.error('Error in DELETE /credentials/:id:', error);
+        res.status(500).json({ message: 'Error deleting credential', error: error.message });
     }
 });
 
