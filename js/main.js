@@ -11,7 +11,14 @@ if (window.microsoftTeams) {
     });
 }
 
+// Global reference to credential manager
+let credentialManager;
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize credential manager
+    credentialManager = new CredentialManager();
+    window.credentialManager = credentialManager; // Make it available globally for onclick handlers
+
     // Initialize password strength elements
     const passwordInput = document.getElementById('password');
     const strengthBar = document.querySelector('.password-strength-bar');
@@ -36,7 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listener for save credential button
     const saveButton = document.getElementById('saveCredential');
     if (saveButton) {
-        saveButton.addEventListener('click', saveCredential);
+        saveButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await saveCredential();
+            // After saving, switch to view credentials tab and refresh the list
+            switchTab('viewCredentials');
+        });
     }
 
     // Initialize search functionality
@@ -86,84 +98,78 @@ function updatePasswordStrength(password) {
 }
 
 function switchTab(tabName) {
-    console.log('Switching to tab:', tabName);
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
     
-    // Update tab buttons
+    // Remove active class from all tabs
     document.querySelectorAll('.tab').forEach(tab => {
-        if (tab.getAttribute('data-tab') === tabName) {
-            tab.classList.add('active');
-        } else {
-            tab.classList.remove('active');
-        }
+        tab.classList.remove('active');
     });
-
-    // Update tab contents
-    document.querySelectorAll('.tab-content').forEach(content => {
-        if (content.id === `${tabName}Tab`) {
-            content.classList.add('active');
-            if (tabName === 'viewCredentials') {
-                loadCredentials();
-            }
-        } else {
-            content.classList.remove('active');
+    
+    // Show selected tab
+    const selectedTab = document.getElementById(tabName);
+    if (selectedTab) {
+        selectedTab.style.display = 'block';
+        // Add active class to clicked tab
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        
+        // If switching to view credentials, load the credentials
+        if (tabName === 'viewCredentials' && credentialManager) {
+            credentialManager.loadCredentials();
         }
-    });
+    }
 }
 
-async function saveCredential(e) {
-    if (e) e.preventDefault();
-    
+async function saveCredential() {
+    const nameInput = document.getElementById('name');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const alertBox = document.querySelector('.alert');
+
     try {
-        const name = document.getElementById('website').value;
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        console.log('Attempting to save credential...');
-
-        if (!name || !username || !password) {
-            console.log('Missing required fields');
-            alert('Please fill in all fields');
+        if (!nameInput.value || !usernameInput.value || !passwordInput.value) {
+            showAlert('Please fill in all fields', 'error');
             return;
         }
 
-        const response = await fetch('/api/credentials', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                name,
-                username,
-                password
-            })
-        });
+        const credential = {
+            name: nameInput.value,
+            username: usernameInput.value,
+            password: passwordInput.value
+        };
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Server response:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('Credential saved successfully:', result);
-
-        // Clear form
-        document.getElementById('website').value = '';
-        document.getElementById('username').value = '';
-        document.getElementById('password').value = '';
+        await api.addCredential(credential);
         
-        // Update password strength UI
-        updatePasswordStrength('');
+        // Clear the form
+        nameInput.value = '';
+        usernameInput.value = '';
+        passwordInput.value = '';
         
         // Show success message
-        alert('Credential saved successfully!');
+        showAlert('Credential saved successfully!', 'success');
         
-        // Optionally switch to view credentials tab
+        // Switch to view credentials tab and refresh the list
         switchTab('viewCredentials');
-
     } catch (error) {
         console.error('Error saving credential:', error);
-        alert('Failed to save credential. Please try again.');
+        showAlert('Failed to save credential: ' + error.message, 'error');
+    }
+}
+
+// Helper function to show alerts
+function showAlert(message, type = 'info') {
+    const alertBox = document.querySelector('.alert');
+    if (alertBox) {
+        alertBox.textContent = message;
+        alertBox.className = `alert alert-${type}`;
+        alertBox.style.display = 'block';
+        
+        // Hide after 5 seconds
+        setTimeout(() => {
+            alertBox.style.display = 'none';
+        }, 5000);
     }
 }
 
