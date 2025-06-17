@@ -4,52 +4,16 @@ const api = {
     async getCredentials() {
         try {
             console.log('Fetching credentials...');
-            const response = await fetch(`${API_BASE_URL}/credentials`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-
+            const response = await fetch(`${API_BASE_URL}/credentials`);
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`Failed to fetch credentials: ${response.status}`);
             }
 
-            const data = await response.json();
-            console.log('Credentials fetched successfully');
-            return data;
+            return await response.json();
         } catch (error) {
-            console.error('Error fetching credentials:', error);
-            throw new Error('Failed to fetch credentials: ' + error.message);
-        }
-    },
-
-    async addCredential(credential) {
-        try {
-            console.log('Adding credential...');
-            if (!credential.name || !credential.username || !credential.password) {
-                throw new Error('Missing required fields');
-            }
-
-            const response = await fetch(`${API_BASE_URL}/credentials`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(credential)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Credential added successfully');
-            return data;
-        } catch (error) {
-            console.error('Error adding credential:', error);
-            throw new Error('Failed to add credential: ' + error.message);
+            console.error('Error in getCredentials:', error);
+            throw error;
         }
     },
 
@@ -57,21 +21,39 @@ const api = {
         try {
             console.log('Deleting credential:', id);
             const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json'
-                }
+                method: 'DELETE'
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`Failed to delete credential: ${response.status}`);
             }
 
-            console.log('Credential deleted successfully');
             return true;
         } catch (error) {
-            console.error('Error deleting credential:', error);
-            throw new Error('Failed to delete credential: ' + error.message);
+            console.error('Error in deleteCredential:', error);
+            throw error;
+        }
+    },
+
+    async addCredential(data) {
+        try {
+            console.log('Adding credential...');
+            const response = await fetch(`${API_BASE_URL}/credentials`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to add credential: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error in addCredential:', error);
+            throw error;
         }
     }
 };

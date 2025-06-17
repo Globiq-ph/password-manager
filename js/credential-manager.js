@@ -1,15 +1,15 @@
 // Credential management functionality
-class CredentialManager {
-    constructor() {
+const credentialManager = {
+    init: function() {
         this.passwordList = document.getElementById('passwordList');
         this.searchInput = document.getElementById('searchCredentials');
-        this.allCredentials = [];
-
-        // Initialize search
+        this.loadCredentials();
+        
+        // Setup search
         if (this.searchInput) {
             this.searchInput.addEventListener('input', () => this.filterCredentials());
         }
-    }
+    },
 
     async loadCredentials() {
         if (!this.passwordList) return;
@@ -17,84 +17,88 @@ class CredentialManager {
         try {
             this.passwordList.innerHTML = '<p class="loading">Loading credentials...</p>';
             const credentials = await api.getCredentials();
-            this.allCredentials = Array.isArray(credentials) ? credentials : [];
-            this.renderCredentials(this.allCredentials);
+            
+            if (!credentials || credentials.length === 0) {
+                this.passwordList.innerHTML = '<p class="no-results">No credentials found</p>';
+                return;
+            }
+
+            const credentialsHtml = credentials.map(cred => `
+                <div class="credential-item" data-id="${cred._id}">
+                    <div class="credential-content">
+                        <h3>${this.escapeHtml(cred.name)}</h3>
+                        <p><strong>Username:</strong> ${this.escapeHtml(cred.username)}</p>
+                        <div class="password-field">
+                            <strong>Password:</strong>
+                            <span class="password-value" id="pwd-${cred._id}" data-password="${this.escapeHtml(cred.password)}">********</span>
+                            <button class="toggle-password" data-id="${cred._id}">Show</button>
+                        </div>
+                        <button class="delete-credential" data-id="${cred._id}">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+
+            this.passwordList.innerHTML = credentialsHtml;
+
+            // Attach event listeners
+            this.attachEventListeners();
+
         } catch (error) {
             console.error('Failed to load credentials:', error);
-            this.passwordList.innerHTML = `<p class="error">Error loading credentials: ${error.message}</p>`;
+            this.passwordList.innerHTML = '<p class="error">Error loading credentials</p>';
         }
-    }
+    },
 
-    renderCredentials(credentials) {
-        if (!this.passwordList) return;
+    attachEventListeners() {
+        // Password toggle buttons
+        this.passwordList.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                const pwdSpan = document.getElementById(`pwd-${id}`);
+                const password = pwdSpan.dataset.password;
+                
+                if (pwdSpan.textContent === '********') {
+                    pwdSpan.textContent = password;
+                    e.target.textContent = 'Hide';
+                } else {
+                    pwdSpan.textContent = '********';
+                    e.target.textContent = 'Show';
+                }
+            });
+        });
 
-        if (!credentials || credentials.length === 0) {
-            this.passwordList.innerHTML = '<p class="no-results">No credentials found</p>';
-            return;
-        }
-
-        const html = credentials.map(cred => `
-            <div class="credential-item" data-id="${cred._id}">
-                <div class="credential-content">
-                    <h3>${this.escapeHtml(cred.name)}</h3>
-                    <p><strong>Username:</strong> ${this.escapeHtml(cred.username)}</p>
-                    <div class="password-section">
-                        <strong>Password:</strong> 
-                        <span class="password-hidden" id="pwd-${cred._id}">********</span>
-                        <button class="btn btn-show" onclick="credentialManager.togglePassword('${cred._id}', '${this.escapeHtml(cred.password)}')">
-                            Show
-                        </button>
-                    </div>
-                    <button class="btn btn-delete" onclick="credentialManager.deleteCredential('${cred._id}')">Delete</button>
-                </div>
-            </div>
-        `).join('');
-
-        this.passwordList.innerHTML = html;
-    }
-
-    async togglePassword(credentialId, password) {
-        const passwordSpan = document.getElementById(`pwd-${credentialId}`);
-        const button = passwordSpan.nextElementSibling;
-
-        if (!passwordSpan || !button) {
-            console.error('Password elements not found');
-            return;
-        }
-
-        if (passwordSpan.textContent === '********') {
-            passwordSpan.textContent = password;
-            button.textContent = 'Hide';
-        } else {
-            passwordSpan.textContent = '********';
-            button.textContent = 'Show';
-        }
-    }
-
-    async deleteCredential(credentialId) {
-        if (!confirm('Are you sure you want to delete this credential?')) {
-            return;
-        }
-
-        try {
-            await api.deleteCredential(credentialId);
-            await this.loadCredentials(); // Reload the full list
-        } catch (error) {
-            console.error('Error deleting credential:', error);
-            alert('Failed to delete credential: ' + error.message);
-        }
-    }
+        // Delete buttons
+        this.passwordList.querySelectorAll('.delete-credential').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                if (confirm('Are you sure you want to delete this credential?')) {
+                    try {
+                        await api.deleteCredential(id);
+                        // Reload the credentials list
+                        this.loadCredentials();
+                    } catch (error) {
+                        console.error('Error deleting credential:', error);
+                        alert('Failed to delete credential');
+                    }
+                }
+            });
+        });
+    },
 
     filterCredentials() {
-        if (!this.searchInput) return;
-        
         const searchTerm = this.searchInput.value.toLowerCase();
-        const filtered = this.allCredentials.filter(cred => 
-            cred.name.toLowerCase().includes(searchTerm) || 
-            cred.username.toLowerCase().includes(searchTerm)
-        );
-        this.renderCredentials(filtered);
-    }
+        const items = this.passwordList.querySelectorAll('.credential-item');
+        
+        items.forEach(item => {
+            const name = item.querySelector('h3').textContent.toLowerCase();
+            const username = item.querySelector('p').textContent.toLowerCase();
+            if (name.includes(searchTerm) || username.includes(searchTerm)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    },
 
     escapeHtml(unsafe) {
         return unsafe
@@ -105,10 +109,9 @@ class CredentialManager {
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     }
-}
+};
 
-// Initialize the credential manager when the page loads
-window.credentialManager = new CredentialManager();
+// Initialize when the DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    window.credentialManager.loadCredentials();
+    credentialManager.init();
 });
