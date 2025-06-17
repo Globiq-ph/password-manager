@@ -1,25 +1,33 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://password-manager-for-teams.onrender.com/api';
 
-const api = {
-    getCredentials: async function() {
+const api = {    getCredentials: async function() {
         try {
-            console.log('Fetching credentials...');
+            console.log('Fetching credentials from:', `${API_BASE_URL}/credentials`);
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
-                credentials: 'same-origin'
+                mode: 'cors'
             });
+            
+            console.log('Response status:', response.status);
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Server response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}`);
+                console.error('Server error response:', errorText);
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
             }
             
             const data = await response.json();
             console.log('Fetched credentials:', data);
+            
+            if (!Array.isArray(data)) {
+                console.error('Invalid data format received:', data);
+                throw new Error('Invalid data format received from server');
+            }
+            
             return data;
         } catch (error) {
             console.error('Error fetching credentials:', error);

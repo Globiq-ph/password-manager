@@ -8,17 +8,26 @@ class CredentialManager {    constructor() {
     }    setupEventListeners() {
         // Search functionality
         this.searchInput.addEventListener('input', () => this.filterCredentials());
-    }
-
-    async loadCredentials() {
+    }    async loadCredentials() {
         try {
+            console.log('Starting to load credentials...');
+            this.passwordList.innerHTML = '<p class="loading">Loading credentials...</p>';
+            
             this.allCredentials = await api.getCredentials();
+            console.log('Loaded credentials:', this.allCredentials);
+            
+            if (!this.allCredentials || !Array.isArray(this.allCredentials)) {
+                console.error('Invalid credentials data received:', this.allCredentials);
+                this.passwordList.innerHTML = '<p class="error">Error: Invalid data received from server</p>';
+                return;
+            }
+            
             this.renderCredentials(this.allCredentials);
         } catch (error) {
             console.error('Failed to load credentials:', error);
-            this.passwordList.innerHTML = '<p class="no-results">Error loading credentials</p>';
+            this.passwordList.innerHTML = `<p class="error">Error loading credentials: ${error.message}</p>`;
         }
-    }    renderCredentials(credentials) {
+    }renderCredentials(credentials) {
         console.log('Rendering credentials:', credentials);
         
         if (!Array.isArray(credentials) || credentials.length === 0) {
