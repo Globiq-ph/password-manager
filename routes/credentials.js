@@ -14,8 +14,15 @@ router.get('/', async (req, res) => {
         const decryptedCredentials = credentials.map(cred => {
             const plainCred = cred.toObject();
             try {
-                if (plainCred.password.includes(':')) {
-                    plainCred.password = decrypt(plainCred.password);
+                if (plainCred.password && 
+                    plainCred.password.encryptedData && 
+                    plainCred.password.iv && 
+                    plainCred.password.tag) {
+                    plainCred.password = decrypt({
+                        encryptedData: plainCred.password.encryptedData,
+                        iv: plainCred.password.iv,
+                        tag: plainCred.password.tag
+                    });
                 }
             } catch (error) {
                 console.error('Error decrypting password:', error);
@@ -40,13 +47,18 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
-        // Encrypt password before saving
+        // Encrypt the password
         const encryptedPassword = encrypt(password);
         
+        // Create the credential with encrypted password matching schema structure
         const credential = new Credential({
             name,
             username,
-            password: encryptedPassword
+            password: {
+                encryptedData: encryptedPassword.encryptedData,
+                iv: encryptedPassword.iv,
+                tag: encryptedPassword.tag
+            }
         });
 
         const savedCredential = await credential.save();
