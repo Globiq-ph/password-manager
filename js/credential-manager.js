@@ -1,27 +1,12 @@
 // Credential management functionality
-class CredentialManager {
-    constructor() {
+class CredentialManager {    constructor() {
         this.searchInput = document.getElementById('searchCredentials');
-        this.selectAllBtn = document.getElementById('selectAllBtn');
-        this.deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-        this.selectedCount = document.getElementById('selectedCount');
         this.passwordList = document.getElementById('passwordList');
-        
-        this.selectedCredentials = new Set();
         this.allCredentials = [];
-        
         this.setupEventListeners();
-    }
-
-    setupEventListeners() {
+    }    setupEventListeners() {
         // Search functionality
         this.searchInput.addEventListener('input', () => this.filterCredentials());
-        
-        // Select all functionality
-        this.selectAllBtn.addEventListener('click', () => this.toggleSelectAll());
-        
-        // Delete selected functionality
-        this.deleteSelectedBtn.addEventListener('click', () => this.deleteSelected());
     }
 
     async loadCredentials() {
@@ -71,12 +56,10 @@ class CredentialManager {
         
         const regex = new RegExp(`(${searchTerm})`, 'gi');
         return text.replace(regex, '<mark>$1</mark>');
-    }
-
-    filterCredentials() {
+    }    filterCredentials() {
         const searchTerm = this.searchInput.value.trim().toLowerCase();
         const filtered = this.allCredentials.filter(cred => 
-            cred.website.toLowerCase().includes(searchTerm) ||
+            cred.name.toLowerCase().includes(searchTerm) ||
             cred.username.toLowerCase().includes(searchTerm)
         );
         this.renderCredentials(filtered);
@@ -133,32 +116,30 @@ class CredentialManager {
         }
     }
 
-    async deleteCredential(id) {
+    async togglePassword(credentialId) {
+        const passwordSpan = document.getElementById(`pwd-${credentialId}`);
+        const credential = this.allCredentials.find(c => c._id === credentialId);
+        
+        if (!credential) return;
+
+        if (passwordSpan.textContent === '********') {
+            passwordSpan.textContent = credential.password;
+        } else {
+            passwordSpan.textContent = '********';
+        }
+    }
+
+    async deleteCredential(credentialId) {
         if (!confirm('Are you sure you want to delete this credential?')) {
             return;
         }
 
         try {
-            await api.deleteCredential(id);
-            this.selectedCredentials.delete(id);
-            await this.loadCredentials();
-            this.updateUI();
+            await api.deleteCredential(credentialId);
+            await this.loadCredentials(); // Reload the list
         } catch (error) {
+            console.error('Error deleting credential:', error);
             alert('Failed to delete credential');
-            console.error('Delete error:', error);
-        }
-    }
-
-    togglePassword(id, password) {
-        const pwdSpan = document.getElementById(`pwd-${id}`);
-        const btn = pwdSpan.parentElement.nextElementSibling.querySelector('.btn-show');
-        
-        if (pwdSpan.textContent === '********') {
-            pwdSpan.textContent = password;
-            btn.innerHTML = '<i class="fas fa-eye-slash"></i> Hide';
-        } else {
-            pwdSpan.textContent = '********';
-            btn.innerHTML = '<i class="fas fa-eye"></i> Show';
         }
     }
 
