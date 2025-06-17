@@ -3,6 +3,7 @@ class CredentialManager {    constructor() {
         this.searchInput = document.getElementById('searchCredentials');
         this.passwordList = document.getElementById('passwordList');
         this.allCredentials = [];
+        this.selectedCredentials = new Set();
         this.setupEventListeners();
     }    setupEventListeners() {
         // Search functionality
@@ -17,34 +18,37 @@ class CredentialManager {    constructor() {
             console.error('Failed to load credentials:', error);
             this.passwordList.innerHTML = '<p class="no-results">Error loading credentials</p>';
         }
-    }
-
-    renderCredentials(credentials) {
-        if (credentials.length === 0) {
+    }    renderCredentials(credentials) {
+        console.log('Rendering credentials:', credentials);
+        
+        if (!Array.isArray(credentials) || credentials.length === 0) {
             this.passwordList.innerHTML = '<p class="no-results">No credentials found</p>';
             return;
         }
 
-        this.passwordList.innerHTML = credentials.map(cred => `            <div class="password-item credential-item" data-id="${cred._id}">
-                <input type="checkbox" class="credential-checkbox" data-id="${cred._id}">
+        this.passwordList.innerHTML = credentials.map(cred => {
+            const id = cred._id || cred.id;
+            return `
+            <div class="password-item credential-item" data-id="${id}">
                 <div class="credential-content">
-                    <h3>${this.highlightSearch(cred.name)}</h3>
-                    <p><strong>Username:</strong> ${this.highlightSearch(cred.username)}</p>
+                    <h3>${this.escapeHtml(cred.name)}</h3>
+                    <p><strong>Username:</strong> ${this.escapeHtml(cred.username)}</p>
                     <p>
                         <strong>Password:</strong> 
-                        <span class="password-hidden" id="pwd-${cred._id}">********</span>
+                        <span class="password-hidden" id="pwd-${id}">********</span>
                     </p>
                     <div class="password-actions">
-                        <button class="btn btn-show" onclick="credentialManager.togglePassword('${cred._id}', '${cred.password}')">
+                        <button class="btn btn-show" onclick="credentialManager.togglePassword('${id}', '${this.escapeHtml(cred.password)}')">
                             <i class="fas fa-eye"></i> Show
                         </button>
-                        <button class="btn btn-delete" onclick="credentialManager.deleteCredential('${cred._id}')">
+                        <button class="btn btn-delete" onclick="credentialManager.deleteCredential('${id}')">
                             <i class="fas fa-trash"></i> Delete
                         </button>
                     </div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
 
         // Setup checkbox listeners
         this.setupCheckboxListeners();
@@ -155,7 +159,17 @@ class CredentialManager {    constructor() {
         const checkboxes = document.querySelectorAll('.credential-checkbox');
         return this.selectedCredentials.size === checkboxes.length && checkboxes.length > 0;
     }
+
+    escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
 }
 
 // Initialize the credential manager
-let credentialManager;
+let credentialManager = new CredentialManager();
+credentialManager.loadCredentials();

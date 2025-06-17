@@ -42,6 +42,12 @@ app.use('/api/', limiter);
 // Connect to MongoDB
 connectDB();
 
+// Import routes
+const credentialsRoute = require('./routes/credentials');
+
+// Use routes
+app.use('/api/credentials', credentialsRoute);
+
 // Debug route
 app.get('/api/debug', async (req, res) => {
     try {
