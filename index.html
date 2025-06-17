@@ -222,10 +222,41 @@
             margin: 8px 0;
             color: #333;
         }
+
+        /* New styles for alert box */
+        .alert {
+            padding: 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert .close-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: inherit;
+        }
     </style>
 </head>
 <body>
     <h1 class="app-title">GlobiQ Password Manager</h1>
+
+    <!-- Alert box for messages -->
+    <div class="alert" style="display: none;"></div>
 
     <div class="container">
         <div class="tabs">
@@ -233,11 +264,11 @@
             <div class="tab" data-tab="viewCredentials">View Credentials</div>
         </div>
 
-        <div id="addCredentialTab" class="tab-content active">
+        <div id="addCredential" class="tab-content active">
             <div class="add-password-form">
                 <div class="form-group">
-                    <label for="website">Website</label>
-                    <input type="text" id="website" class="input-field" placeholder="Enter website name">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" class="input-field" placeholder="Enter credential name">
                 </div>
 
                 <div class="form-group">
@@ -256,15 +287,15 @@
                     </div>
                 </div>
 
-                <button onclick="saveCredential()" class="save-button">Save Credential</button>
+                <button id="saveCredential" class="save-button">Save Credential</button>
             </div>
         </div>
 
-        <div id="viewCredentialsTab" class="tab-content">
+        <div id="viewCredentials" class="tab-content">
             <div class="search-container">
                 <input type="text" id="searchCredentials" class="input-field" placeholder="Search credentials...">
             </div>
-            <div id="credentialsList" class="credentials-grid">
+            <div id="passwordList" class="credentials-grid">
                 <!-- Credentials will be populated here -->
             </div>
         </div>
@@ -272,6 +303,7 @@
 
     <script src="js/password-utils.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/credential-manager.js"></script>
     <script src="js/main.js"></script>
     <script>
         // Initialize Microsoft Teams

@@ -3,55 +3,36 @@ const API_BASE_URL = 'https://password-manager-for-teams.onrender.com/api';
 const api = {
     async getCredentials() {
         try {
-            console.log('Fetching credentials from:', `${API_BASE_URL}/credentials`);
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                credentials: 'include',
-                mode: 'cors'
+                    'Content-Type': 'application/json'
+                }
             });
             
-            console.log('Response status:', response.status);
-            
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Server error response:', errorText);
-                throw new Error(`Server error: ${response.status} - ${errorText}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            const data = await response.json();
-            console.log('Fetched credentials:', data);
+            return await response.json();
             
-            if (!Array.isArray(data)) {
-                console.error('Invalid data format received:', data);
-                throw new Error('Invalid data format received from server');
-            }
-            
-            return data;
         } catch (error) {
             console.error('Error fetching credentials:', error);
-            throw error;
+            throw new Error('Failed to fetch credentials');
         }
     },
 
     async addCredential(credential) {
         try {
-            console.log('Adding credential:', credential);
             if (!credential.name || !credential.username || !credential.password) {
-                throw new Error('All fields are required (Name, Username, and Password)');
+                throw new Error('Missing required fields');
             }
-            
+
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                headers: {
+                    'Content-Type': 'application/json'
                 },
-                credentials: 'include',
-                mode: 'cors',
                 body: JSON.stringify({
                     name: credential.name,
                     username: credential.username,
@@ -60,17 +41,15 @@ const api = {
             });
             
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Server response:', errorText);
-                throw new Error(`Failed to add credential: ${errorText}`);
+                const error = await response.text();
+                throw new Error(error);
             }
             
-            const result = await response.json();
-            console.log('Credential added successfully:', result);
-            return result;
+            return await response.json();
+            
         } catch (error) {
             console.error('Error adding credential:', error);
-            throw error;
+            throw new Error('Failed to save credential: ' + error.message);
         }
     },
     
@@ -83,24 +62,19 @@ const api = {
             const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
                 method: 'DELETE',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                credentials: 'include',
-                mode: 'cors'
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to delete credential: ${errorText}`);
+                throw new Error(`Failed to delete credential (${response.status})`);
             }
 
-            const result = await response.json();
-            console.log('Credential deleted successfully:', result);
-            return result;
+            return await response.json();
+            
         } catch (error) {
             console.error('Error deleting credential:', error);
-            throw error;
+            throw new Error('Failed to delete credential: ' + error.message);
         }
     }
 };

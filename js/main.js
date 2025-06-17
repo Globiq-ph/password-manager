@@ -1,92 +1,66 @@
-// Initialize Microsoft Teams SDK if available
+// Initialize Teams if available
 if (window.microsoftTeams) {
     microsoftTeams.initialize();
-    microsoftTeams.getContext((context) => {
-        console.log("Teams Context:", context);
-        // Store user info if needed
-        if (context.user) {
-            localStorage.setItem('teamsUserEmail', context.user.userPrincipalName);
-            localStorage.setItem('teamsUserName', context.user.displayName);
-        }
-    });
 }
 
-let credentialManager;
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize credential manager
-    credentialManager = new CredentialManager();
-    window.credentialManager = credentialManager;
-
+document.addEventListener('DOMContentLoaded', function() {
     // Initialize UI elements
     const passwordInput = document.getElementById('password');
-    const strengthBar = document.querySelector('.password-strength-bar');
-    const strengthText = document.getElementById('passwordStrengthText');
     const saveButton = document.getElementById('saveCredential');
-    const searchInput = document.getElementById('searchCredentials');
 
-    // Setup password strength indicator
-    if (passwordInput && strengthBar && strengthText) {
-        passwordInput.addEventListener('input', (e) => {
-            updatePasswordStrength(e.target.value);
+    // Password strength meter
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            updatePasswordStrength(this.value);
         });
     }
 
-    // Setup tab switching
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', (e) => {
+    // Save button
+    if (saveButton) {
+        saveButton.addEventListener('click', async function(e) {
             e.preventDefault();
-            const tabName = e.target.getAttribute('data-tab');
+            await handleSaveCredential();
+        });
+    }
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tabName = this.getAttribute('data-tab');
             if (tabName) {
                 switchTab(tabName);
             }
         });
     });
 
-    // Setup save credential
-    if (saveButton) {
-        saveButton.addEventListener('click', async (e) => {
-            e.preventDefault();
-            try {
-                await saveCredential();
-                switchTab('viewCredentials');
-            } catch (error) {
-                console.error('Error saving credential:', error);
-                showAlert('Failed to save credential: ' + error.message, 'error');
-            }
-        });
+    // Initialize credential list if we're on the view tab
+    if (window.location.hash === '#viewCredentials') {
+        switchTab('viewCredentials');
+    } else {
+        switchTab('addCredential');
     }
-
-    // Setup search
-    if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            credentialManager.filterCredentials();
-        });
-    }
-
-    // Start with Add Credential tab
-    switchTab('addCredential');
 });
 
 function updatePasswordStrength(password) {
     const strengthBar = document.querySelector('.password-strength-bar');
     const strengthText = document.getElementById('passwordStrengthText');
     
-    if (!strengthBar || !strengthText || !password) {
-        if (strengthBar) strengthBar.style.width = '0%';
-        if (strengthText) strengthText.textContent = 'Password Strength: Not Set';
-        return;
-    }
-
+    if (!strengthBar || !strengthText) return;
+    
     let strength = 0;
     if (password.length >= 8) strength += 25;
     if (/[A-Z]/.test(password)) strength += 25;
     if (/[0-9]/.test(password)) strength += 25;
     if (/[^A-Za-z0-9]/.test(password)) strength += 25;
 
-    strengthBar.style.width = `${strength}%`;
+    strengthBar.style.width = strength + '%';
     
-    if (strength <= 25) {
+    if (!password) {
+        strengthBar.style.width = '0%';
+        strengthBar.style.backgroundColor = '#eee';
+        strengthText.textContent = 'Password Strength: Not Set';
+    } else if (strength <= 25) {
         strengthBar.style.backgroundColor = '#ff4444';
         strengthText.textContent = 'Password Strength: Weak';
     } else if (strength <= 50) {
@@ -102,67 +76,117 @@ function updatePasswordStrength(password) {
 }
 
 function switchTab(tabName) {
-    // First hide all tabs
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.style.display = 'none';
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+        tab.classList.remove('active');
     });
-
-    // Remove active class from all tabs
+    
+    // Remove active class from all tab buttons
     document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
     });
-
-    // Show selected tab content
+    
+    // Show selected tab
     const selectedTab = document.getElementById(tabName);
-    if (selectedTab) {
+    const selectedTabButton = document.querySelector(`[data-tab="${tabName}"]`);
+    
+    if (selectedTab && selectedTabButton) {
         selectedTab.style.display = 'block';
-    }
-
-    // Make clicked tab active
-    const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
-    if (activeTab) {
-        activeTab.classList.add('active');
-    }
-
-    // Load credentials if viewing credentials tab
-    if (tabName === 'viewCredentials' && credentialManager) {
-        credentialManager.loadCredentials();
+        selectedTab.classList.add('active');
+        selectedTabButton.classList.add('active');
+        
+        // Load credentials if viewing credentials tab
+        if (tabName === 'viewCredentials') {
+            loadCredentialsList();
+        }
     }
 }
 
-async function saveCredential() {
+async function handleSaveCredential() {
+    // Get form data
     const nameInput = document.getElementById('name');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
 
-    if (!nameInput || !usernameInput || !passwordInput) {
-        throw new Error('Required form elements not found');
-    }
-
-    if (!nameInput.value || !usernameInput.value || !passwordInput.value) {
-        throw new Error('Please fill in all fields');
-    }
-
-    const credential = {
-        name: nameInput.value.trim(),
-        username: usernameInput.value.trim(),
-        password: passwordInput.value
-    };
-
     try {
-        await api.addCredential(credential);
+        // Validate inputs
+        if (!nameInput || !usernameInput || !passwordInput) {
+            throw new Error('Required form elements not found');
+        }
+
+        const name = nameInput.value.trim();
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+
+        if (!name || !username || !password) {
+            throw new Error('Please fill in all fields');
+        }
+
+        // Save credential
+        await api.addCredential({ name, username, password });
+        
+        // Show success message
+        showMessage('Credential saved successfully!', 'success');
+        
+        // Clear form
         nameInput.value = '';
         usernameInput.value = '';
         passwordInput.value = '';
-        showAlert('Credential saved successfully!', 'success');
-        return true;
+        updatePasswordStrength('');
+        
+        // Switch to view tab
+        switchTab('viewCredentials');
+
     } catch (error) {
         console.error('Error saving credential:', error);
-        throw error;
+        showMessage(error.message, 'error');
     }
 }
 
-function showAlert(message, type = 'info') {
+async function loadCredentialsList() {
+    const listElement = document.getElementById('passwordList');
+    if (!listElement) return;
+
+    try {
+        listElement.innerHTML = '<p class="loading">Loading credentials...</p>';
+        
+        const credentials = await api.getCredentials();
+        
+        if (!credentials || credentials.length === 0) {
+            listElement.innerHTML = '<p class="no-results">No credentials found</p>';
+            return;
+        }
+
+        // Render credentials
+        listElement.innerHTML = credentials.map(cred => `
+            <div class="credential-item">
+                <div class="credential-content">
+                    <h3>${escapeHtml(cred.name)}</h3>
+                    <p><strong>Username:</strong> ${escapeHtml(cred.username)}</p>
+                    <p>
+                        <strong>Password:</strong> 
+                        <span class="password-hidden" id="pwd-${escapeHtml(cred._id)}">********</span>
+                        <button class="btn btn-show" onclick="togglePassword('${escapeHtml(cred._id)}')">
+                            Show/Hide
+                        </button>
+                    </p>
+                </div>
+                <div class="credential-actions">
+                    <button class="btn btn-delete" onclick="deleteCredential('${escapeHtml(cred._id)}')">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error('Error loading credentials:', error);
+        listElement.innerHTML = `<p class="error">Error loading credentials: ${error.message}</p>`;
+    }
+}
+
+function showMessage(message, type = 'info') {
     const alertBox = document.querySelector('.alert');
     if (alertBox) {
         alertBox.textContent = message;
@@ -174,3 +198,50 @@ function showAlert(message, type = 'info') {
         }, 5000);
     }
 }
+
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// Functions used by inline onclick handlers
+window.togglePassword = function(id) {
+    const pwdElement = document.getElementById(`pwd-${id}`);
+    if (!pwdElement) return;
+
+    if (pwdElement.textContent === '********') {
+        // Fetch the actual password from the server
+        api.getCredentials().then(credentials => {
+            const credential = credentials.find(c => c._id === id);
+            if (credential) {
+                pwdElement.textContent = credential.password;
+                pwdElement.classList.remove('password-hidden');
+                pwdElement.classList.add('password-visible');
+            }
+        });
+    } else {
+        pwdElement.textContent = '********';
+        pwdElement.classList.remove('password-visible');
+        pwdElement.classList.add('password-hidden');
+    }
+};
+
+window.deleteCredential = async function(id) {
+    if (!id) return;
+
+    if (confirm('Are you sure you want to delete this credential?')) {
+        try {
+            await api.deleteCredential(id);
+            showMessage('Credential deleted successfully', 'success');
+            loadCredentialsList();
+        } catch (error) {
+            console.error('Error deleting credential:', error);
+            showMessage(error.message, 'error');
+        }
+    }
+};
