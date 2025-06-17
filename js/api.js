@@ -1,6 +1,7 @@
 const API_BASE_URL = 'https://password-manager-for-teams.onrender.com/api';
 
-const api = {    getCredentials: async function() {
+const api = {
+    async getCredentials() {
         try {
             console.log('Fetching credentials from:', `${API_BASE_URL}/credentials`);
             const response = await fetch(`${API_BASE_URL}/credentials`, {
@@ -9,6 +10,7 @@ const api = {    getCredentials: async function() {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
+                credentials: 'include',
                 mode: 'cors'
             });
             
@@ -33,31 +35,10 @@ const api = {    getCredentials: async function() {
             console.error('Error fetching credentials:', error);
             throw error;
         }
-    },      async addCredential(credential) {
+    },
+
+    async addCredential(credential) {
         try {
-            console.log('Adding credential:', credential);
-            const response = await fetch(`${API_BASE_URL}/credentials`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify(credential)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Server response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Added credential:', data);
-            return data;
-        } catch (error) {
-            console.error('Error adding credential:', error);
-            throw error;
-        }
             console.log('Adding credential:', credential);
             if (!credential.name || !credential.username || !credential.password) {
                 throw new Error('All fields are required (Name, Username, and Password)');
@@ -69,7 +50,8 @@ const api = {    getCredentials: async function() {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                credentials: 'same-origin',
+                credentials: 'include',
+                mode: 'cors',
                 body: JSON.stringify({
                     name: credential.name,
                     username: credential.username,
@@ -80,7 +62,7 @@ const api = {    getCredentials: async function() {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Server response:', errorText);
-                throw new Error('Failed to add credential');
+                throw new Error(`Failed to add credential: ${errorText}`);
             }
             
             const result = await response.json();
@@ -94,18 +76,28 @@ const api = {    getCredentials: async function() {
     
     async deleteCredential(id) {
         try {
+            if (!id) {
+                throw new Error('Credential ID is required');
+            }
+
             const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
                 method: 'DELETE',
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                mode: 'cors'
             });
-            
+
             if (!response.ok) {
-                throw new Error('Failed to delete credential');
+                const errorText = await response.text();
+                throw new Error(`Failed to delete credential: ${errorText}`);
             }
-            
-            return true;
+
+            const result = await response.json();
+            console.log('Credential deleted successfully:', result);
+            return result;
         } catch (error) {
             console.error('Error deleting credential:', error);
             throw error;
