@@ -169,25 +169,11 @@ function switchTab(tabName) {
 }
 
 async function handleSaveCredential() {
+    console.log('Starting save credential process...');
     const saveButton = document.getElementById('saveCredential');
     if (saveButton) saveButton.disabled = true;
 
     try {
-        console.log('Starting save credential process...');
-        
-        // Verify user context
-        const userContext = {
-            id: localStorage.getItem('teamsUserId'),
-            name: localStorage.getItem('teamsUserName'),
-            email: localStorage.getItem('teamsUserEmail')
-        };
-
-        console.log('User context:', userContext);
-
-        if (!userContext.id || !userContext.name || !userContext.email) {
-            throw new Error('User context is missing. Please reload the page.');
-        }
-
         // Get form elements
         const nameInput = document.getElementById('name');
         const usernameInput = document.getElementById('username');
@@ -196,6 +182,26 @@ async function handleSaveCredential() {
         const categoryInput = document.getElementById('category');
         const statusSelect = document.getElementById('status');
         const isAdminCheckbox = document.getElementById('isAdmin');
+
+        // Verify user context exists
+        const userContext = {
+            id: localStorage.getItem('teamsUserId'),
+            name: localStorage.getItem('teamsUserName'),
+            email: localStorage.getItem('teamsUserEmail')
+        };
+
+        console.log('User context:', userContext);
+
+        // Set default values if missing
+        if (!userContext.id || !userContext.name || !userContext.email) {
+            console.log('Setting default user context...');
+            localStorage.setItem('teamsUserId', 'dev-user');
+            localStorage.setItem('teamsUserName', 'Developer');
+            localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
+            userContext.id = 'dev-user';
+            userContext.name = 'Developer';
+            userContext.email = 'dev@globiq.com';
+        }
 
         // Check if elements exist
         if (!nameInput || !usernameInput || !passwordInput) {
@@ -216,7 +222,10 @@ async function handleSaveCredential() {
             ownerEmail: userContext.email
         };
 
-        console.log('Form data:', { ...formData, password: '********' });
+        console.log('Form data:', { 
+            ...formData, 
+            password: formData.password ? '********' : undefined 
+        });
 
         // Validate required fields
         const missingFields = [];
@@ -228,7 +237,7 @@ async function handleSaveCredential() {
             throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
         }
 
-        // Save credential
+        console.log('Sending data to API...');
         const savedCredential = await api.addCredential(formData);
         console.log('Credential saved:', savedCredential._id);
 
@@ -254,7 +263,7 @@ async function handleSaveCredential() {
         switchTab('viewCredentials');
 
     } catch (error) {
-        console.error('Error saving credential:', error);
+        console.error('Error in handleSaveCredential:', error);
         showMessage(`Failed to save credential: ${error.message}`, 'error');
     } finally {
         if (saveButton) saveButton.disabled = false;
