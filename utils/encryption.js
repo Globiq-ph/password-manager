@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 require('dotenv').config();
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default32charencryptionkeyfordevonly';
 const IV_LENGTH = 16;
 
 // Validate encryption key
@@ -15,9 +15,23 @@ function encrypt(text) {
     }
 
     try {
+        // Create initialization vector
         const iv = crypto.randomBytes(IV_LENGTH);
-        const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(ENCRYPTION_KEY), iv);
-        const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
+        
+        // Create cipher
+        const cipher = crypto.createCipheriv(
+            'aes-256-gcm', 
+            Buffer.from(ENCRYPTION_KEY), 
+            iv
+        );
+        
+        // Encrypt
+        const encrypted = Buffer.concat([
+            cipher.update(text.toString()), // Convert to string in case a number is passed
+            cipher.final()
+        ]);
+        
+        // Get auth tag
         const tag = cipher.getAuthTag();
         
         return {
@@ -27,7 +41,7 @@ function encrypt(text) {
         };
     } catch (error) {
         console.error('Encryption error:', error);
-        throw new Error('Failed to encrypt data');
+        throw new Error(`Failed to encrypt data: ${error.message}`);
     }
 }
 
@@ -37,20 +51,26 @@ function decrypt(encrypted) {
     }
 
     try {
+        // Create decipher
         const decipher = crypto.createDecipheriv(
             'aes-256-gcm',
             Buffer.from(ENCRYPTION_KEY),
             Buffer.from(encrypted.iv, 'hex')
         );
+        
+        // Set auth tag
         decipher.setAuthTag(Buffer.from(encrypted.tag, 'hex'));
+        
+        // Decrypt
         const decrypted = Buffer.concat([
             decipher.update(Buffer.from(encrypted.encryptedData, 'hex')),
             decipher.final()
         ]);
+        
         return decrypted.toString();
     } catch (error) {
         console.error('Decryption error:', error);
-        throw new Error('Failed to decrypt data');
+        throw new Error(`Failed to decrypt data: ${error.message}`);
     }
 }
 

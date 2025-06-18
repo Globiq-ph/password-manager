@@ -1,6 +1,274 @@
 // Teams SDK initialization
 microsoftTeams.app.initialize().then(() => {
     console.log('Microsoft Teams SDK initialized');
+    initializeApp();
+}).catch(error => {
+    console.error('Error initializing Teams SDK:', error);
+    initializeApp();
+});
+
+function initializeApp() {
+    // Set default development values
+    localStorage.setItem('teamsUserId', 'dev-user');
+    localStorage.setItem('teamsUserName', 'Developer');
+    localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
+    
+    // Initialize UI elements
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    const adminLoginOverlay = document.getElementById('adminLoginOverlay');
+    const adminTab = document.querySelector('.admin-tab');
+    const adminPanel = document.getElementById('adminPanel');
+    const adminSearch = document.getElementById('adminSearch');
+    const adminStatusFilter = document.getElementById('adminStatusFilter');
+    
+    // Admin authentication
+    if (adminLoginForm) {
+        adminLoginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+
+            if (username === 'john doe' && password === 'password') {
+                // Store admin status
+                localStorage.setItem('isAdmin', 'true');
+                
+                // Show admin tab
+                if (adminTab) adminTab.style.display = 'block';
+                
+                // Hide login overlay
+                if (adminLoginOverlay) adminLoginOverlay.style.display = 'none';
+                
+                // Switch to admin panel
+                switchTab('adminPanel');
+                
+                showMessage('Admin login successful!', 'success');
+                
+                // Load admin data
+                loadAdminDashboard();
+            } else {
+                showMessage('Invalid admin credentials!', 'error');
+            }
+        });
+    }
+
+    // Show admin login if clicking admin tab while not logged in
+    if (adminTab) {
+        adminTab.addEventListener('click', function(e) {
+            if (!localStorage.getItem('isAdmin')) {
+                e.preventDefault();
+                adminLoginOverlay.style.display = 'flex';
+            }
+        });
+    }
+
+    // Admin search functionality
+    if (adminSearch) {
+        adminSearch.addEventListener('input', filterAdminCredentials);
+    }
+
+    // Admin status filter
+    if (adminStatusFilter) {
+        adminStatusFilter.addEventListener('change', filterAdminCredentials);
+    }
+
+    // Check if already logged in as admin
+    if (localStorage.getItem('isAdmin') === 'true') {
+        if (adminTab) adminTab.style.display = 'block';
+    }
+
+    // Initialize credential manager
+    if (window.credentialManager && !window.credentialManager.isInitialized) {
+        window.credentialManager.initialize();
+    }
+
+    // Initialize UI components
+    initializeUIComponents();
+}
+
+function initializeUIComponents() {
+    // Initialize password strength meter
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            updatePasswordStrength(this.value);
+        });
+    }
+
+    // Save button
+    const saveButton = document.getElementById('saveCredential');
+    if (saveButton) {
+        saveButton.addEventListener('click', async function(e) {
+            e.preventDefault();
+            await handleSaveCredential();
+        });
+    }
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tabName = this.getAttribute('data-tab');
+            if (tabName) {
+                switchTab(tabName);
+            }
+        });
+    });
+
+    // Initialize first tab
+    if (window.location.hash === '#viewCredentials') {
+        switchTab('viewCredentials');
+    } else {
+        switchTab('addCredential');
+    }
+}
+
+let adminCredentials = [];
+
+// Admin Dashboard Functions
+function loadAdminDashboard() {
+    fetchAllCredentials().then(credentials => {
+        adminCredentials = credentials;
+        renderAdminCredentials(credentials);
+        setupAdminFilters();
+    }).catch(error => {
+        console.error('Error loading admin dashboard:', error);
+        showMessage('Failed to load credentials', 'error');
+    });
+}
+
+function renderAdminCredentials(credentials) {
+    const container = document.getElementById('adminCredentialsList');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (credentials.length === 0) {
+        container.innerHTML = '<div class="admin-grid-row"><div class="admin-col">No credentials found</div></div>';
+        return;
+    }
+    
+    credentials.forEach(cred => {
+        const row = document.createElement('div');
+        row.className = 'admin-grid-row';
+        
+        row.innerHTML = `
+            <div class="admin-col">${escapeHtml(cred.website)}</div>
+            <div class="admin-col">${escapeHtml(cred.username)}</div>
+            <div class="admin-col">${escapeHtml(cred.createdBy || 'Unknown')}</div>
+            <div class="admin-col">
+                <span class="status-badge status-${cred.status || 'active'}">${cred.status || 'Active'}</span>
+            </div>
+            <div class="admin-col admin-actions">
+                <button class="admin-btn admin-btn-view" onclick="viewCredential('${cred._id}')">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="admin-btn admin-btn-delete" onclick="deleteCredential('${cred._id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(row);
+    });
+}
+
+function setupAdminFilters() {
+    const searchInput = document.getElementById('adminSearch');
+    const statusFilter = document.getElementById('adminStatusFilter');
+    const logoutBtn = document.getElementById('adminLogout');
+    
+    // Search functionality
+    if (searchInput) {
+        searchInput.addEventListener('input', () => filterAdminCredentials());
+    }
+    
+    // Status filter
+    if (statusFilter) {
+        statusFilter.addEventListener('change', () => filterAdminCredentials());
+    }
+    
+    // Logout functionality
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('isAdmin');
+            document.querySelector('.admin-tab').style.display = 'none';
+            document.getElementById('adminLoginOverlay').style.display = 'block';
+            switchTab('viewCredentials');
+            showMessage('Admin logged out successfully', 'success');
+        });
+    }
+}
+
+function filterAdminCredentials() {
+    const searchTerm = document.getElementById('adminSearch').value.toLowerCase();
+    const statusFilter = document.getElementById('adminStatusFilter').value;
+    
+    const filtered = adminCredentials.filter(cred => {
+        const matchesSearch = 
+            cred.website.toLowerCase().includes(searchTerm) ||
+            cred.username.toLowerCase().includes(searchTerm) ||
+            (cred.createdBy && cred.createdBy.toLowerCase().includes(searchTerm));
+            
+        const matchesStatus = statusFilter === 'all' || 
+            (cred.status || 'active').toLowerCase() === statusFilter.toLowerCase();
+            
+        return matchesSearch && matchesStatus;
+    });
+    
+    renderAdminCredentials(filtered);
+}
+
+function viewCredential(id) {
+    const credential = adminCredentials.find(c => c._id === id);
+    if (!credential) return;
+    
+    // Create modal for viewing credential details
+    const modal = document.createElement('div');
+    modal.className = 'overlay';
+    modal.style.display = 'block';
+    
+    modal.innerHTML = `
+        <div class="overlay-content">
+            <h2>Credential Details</h2>
+            <div class="credential-details">
+                <p><strong>Website:</strong> ${escapeHtml(credential.website)}</p>
+                <p><strong>Username:</strong> ${escapeHtml(credential.username)}</p>
+                <p><strong>Created By:</strong> ${escapeHtml(credential.createdBy || 'Unknown')}</p>
+                <p><strong>Status:</strong> ${credential.status || 'Active'}</p>
+                <p><strong>Created:</strong> ${new Date(credential.createdAt).toLocaleString()}</p>
+            </div>
+            <button class="btn btn-primary" onclick="this.parentElement.parentElement.remove()">Close</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+async function deleteCredential(id) {
+    if (!confirm('Are you sure you want to delete this credential?')) return;
+    
+    try {
+        await fetch(`/api/credentials/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'user-context': localStorage.getItem('teamsUserId')
+            }
+        });
+        
+        // Remove from local array and re-render
+        adminCredentials = adminCredentials.filter(c => c._id !== id);
+        renderAdminCredentials(adminCredentials);
+        showMessage('Credential deleted successfully', 'success');
+    } catch (error) {
+        console.error('Error deleting credential:', error);
+        showMessage('Failed to delete credential', 'error');
+    }
+}
+
+// Teams SDK initialization
+microsoftTeams.app.initialize().then(() => {
+    console.log('Microsoft Teams SDK initialized');
     
     // Set default development values first
     localStorage.setItem('teamsUserId', 'dev-user');
@@ -104,6 +372,12 @@ document.addEventListener('DOMContentLoaded', function() {
         switchTab('viewCredentials');
     } else {
         switchTab('addCredential');
+    }
+
+    // Check if user is admin
+    if (localStorage.getItem('isAdmin') === 'true') {
+        const adminTab = document.querySelector('.admin-tab');
+        if (adminTab) adminTab.style.display = 'block';
     }
 });
 
@@ -303,6 +577,7 @@ function showMessage(message, type = 'info') {
     }
 }
 
+// Helper function to escape HTML to prevent XSS
 function escapeHtml(unsafe) {
     return unsafe
         .replace(/&/g, "&amp;")
