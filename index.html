@@ -805,13 +805,13 @@
     <h1 class="app-title">GlobiQ Password Manager</h1>
 
     <!-- Tab Navigation -->    <div class="tabs">
-        <div class="tab active" onclick="switchTab('addCredential')">
+        <div class="tab active" data-tab="addCredential" onclick="switchTab('addCredential')">
             <i class="fas fa-plus-circle"></i> Add Credential
         </div>
-        <div class="tab" onclick="switchTab('viewCredentials')">
+        <div class="tab" data-tab="viewCredentials" onclick="switchTab('viewCredentials')">
             <i class="fas fa-key"></i> View Credentials
         </div>
-        <div class="tab admin-tab" onclick="switchTab('adminPanel')" style="display: none;">
+        <div class="tab admin-tab" data-tab="adminPanel" onclick="switchTab('adminPanel')" style="display: none;">
             <i class="fas fa-shield-alt"></i> Admin Dashboard
         </div>
     </div>
@@ -928,6 +928,45 @@
                 console.log('Teams Context:', context);
                 // You can use context.user.id, context.team.id, etc.
             });
+        });
+
+        // Tab switching functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up tab click handlers
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    if (tabName) {
+                        // Remove active class from all tabs and hide contents
+                        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.tab-content').forEach(c => {
+                            c.style.display = 'none';
+                            c.classList.remove('active');
+                        });
+                        
+                        // Activate selected tab and content
+                        this.classList.add('active');
+                        const content = document.getElementById(tabName);
+                        if (content) {
+                            content.style.display = 'block';
+                            content.classList.add('active');
+                        }
+                    }
+                });
+            });
+
+            // Set initial active tab
+            const activeTab = document.querySelector('.tab.active');
+            if (activeTab) {
+                const tabName = activeTab.getAttribute('data-tab');
+                if (tabName) {
+                    const content = document.getElementById(tabName);
+                    if (content) {
+                        content.style.display = 'block';
+                        content.classList.add('active');
+                    }
+                }
+            }
         });
     </script>
 </body>
