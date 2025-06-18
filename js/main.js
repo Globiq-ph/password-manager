@@ -26,11 +26,6 @@ if (window.microsoftTeams) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize credential manager first
-    if (window.credentialManager) {
-        window.credentialManager.initialize();
-    }
-
     // Initialize UI elements
     const passwordInput = document.getElementById('password');
     const saveButton = document.getElementById('saveCredential');
@@ -59,15 +54,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 switchTab(tabName);
             }
         });
-    });
-
-    // Initialize credential manager
-    if (window.credentialManager) {
-        try {
-            await window.credentialManager.initialize();
-        } catch (error) {
-            console.error('Error initializing credential manager:', error);
-        }
+    });    // Initialize credential manager if not already initialized
+    if (window.credentialManager && !window.credentialManager.isInitialized) {
+        window.credentialManager.initialize();
     }
 
     // Initialize credential list if we're on the view tab
@@ -133,8 +122,8 @@ function switchTab(tabName) {
         selectedTabButton.classList.add('active');
         
         // Load credentials if viewing credentials tab
-        if (tabName === 'viewCredentials') {
-            loadCredentialsList();
+        if (tabName === 'viewCredentials' && window.credentialManager) {
+            window.credentialManager.loadCredentials();
         }
     }
 }
@@ -144,8 +133,11 @@ async function handleSaveCredential() {
     const nameInput = document.getElementById('name');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
+    const saveButton = document.getElementById('saveCredential');
 
     try {
+        if (saveButton) saveButton.disabled = true;
+
         // Validate inputs
         if (!nameInput || !usernameInput || !passwordInput) {
             throw new Error('Required form elements not found');
