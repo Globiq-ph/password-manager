@@ -25,7 +25,12 @@ if (window.microsoftTeams) {
     microsoftTeams.initialize();
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize credential manager first
+    if (window.credentialManager) {
+        window.credentialManager.initialize();
+    }
+
     // Initialize UI elements
     const passwordInput = document.getElementById('password');
     const saveButton = document.getElementById('saveCredential');
