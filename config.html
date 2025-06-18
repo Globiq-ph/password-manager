@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configure GlobiQ Password Manager</title>
+    <title>Configure Password Manager</title>
     <script src="https://res.cdn.office.net/teams-js/2.14.0/js/MicrosoftTeams.min.js"></script>
 </head>
 <body>
     <div style="padding: 20px;">
-        <h2>Configure GlobiQ Password Manager</h2>
+        <h2>Configure Password Manager</h2>
         <p>Click Save to add the Password Manager to your Teams environment.</p>
     </div>
     <script>
         microsoftTeams.app.initialize().then(() => {
-            microsoftTeams.pages.config.registerOnSaveHandler((saveEvent) => {
-                microsoftTeams.pages.config.setConfig({
-                    suggestedDisplayName: "GlobiQ Password Manager",
-                    entityId: "passwordManager",
-                    contentUrl: window.location.origin,
-                    websiteUrl: window.location.origin
-                }).then(() => {
-                    saveEvent.notifySuccess();
-                });
-            });
-            
+            // Enable the Save button
             microsoftTeams.pages.config.setValidityState(true);
+
+            // Register save handler
+            microsoftTeams.pages.config.registerOnSaveHandler((saveEvent) => {
+                const configPromise = microsoftTeams.pages.config.setConfig({
+                    entityId: "passwordManager",
+                    contentUrl: "https://password-manager-for-teams.onrender.com",
+                    suggestedDisplayName: "Password Manager"
+                });
+                configPromise.then(() => saveEvent.notifySuccess());
+            });
         });
     </script>
 </body>
