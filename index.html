@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobiQ Password Manager</title>
+    <script src="https://res.cdn.office.net/teams-js/2.14.0/js/MicrosoftTeams.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --maroon: #800000;
+            --maroon-light: #a94442;
+            --maroon-bg: #f9ecec;
+            --white: #fff;
+            --gray: #f4f4f4;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+        body {
+            background: var(--maroon-bg);
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1.app-title {
+            font-size: 2.5em;
+            color: var(--maroon);
+            text-align: center;
+            margin: 20px 0;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--maroon);
+            margin-bottom: 24px;
+            border-radius: 8px 8px 0 0;
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 14px 0;
+            text-align: center;
+            cursor: pointer;
+            background: var(--gray);
+            color: var(--maroon);
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: var(--maroon);
+            color: var(--white);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .add-password-form {
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(128,0,0,0.08);
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+        .add-password-form input, .add-password-form button {
+            margin-bottom: 16px;
+        }
+        .add-password-form label {
+            color: var(--maroon);
+            font-weight: 500;
+        }
+        .add-password-form button {
+            background: var(--maroon);
+            color: var(--white);
+            border: none;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .add-password-form button:hover {
+            background: var(--maroon-light);
+        }
+        .password-strength {
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            background: #eee;
+            overflow: hidden;
+        }
+        .password-strength-bar {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .password-list {
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(128,0,0,0.08);
+            padding: 24px;
+        }
+        .password-item {
+            border-bottom: 1px solid #eee;
+            padding: 12px 0;
+        }
+        .password-item:last-child {
+            border-bottom: none;
+        }
+        .password-item h3 {
+            color: var(--maroon);
+            margin-bottom: 4px;
+        }
+        .show-btn {
+            background: none;
+            border: none;
+            color: var(--maroon);
+            cursor: pointer;
+            font-weight: bold;
+        }
+        /* Additional styles for search and mass delete */
+        .credentials-header {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .search-bar {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 12px 40px 12px 15px;
+            border: 2px solid var(--maroon);
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--maroon);
+        }
+
+        .mass-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .credential-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .credential-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        mark {
+            background: #ffe066;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        #addCredentialTab, #viewCredentialsTab {
+            display: none;
+        }
+
+        #addCredentialTab.active, #viewCredentialsTab.active {
+            display: block;
+        }
+
+        .search-container {
+            margin-bottom: 16px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--maroon);
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .credentials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .credential-card {
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(128,0,0,0.08);
+            padding: 16px;
+        }
+
+        .credential-card h3 {
+            margin-top: 0;
+            color: var(--maroon);
+        }
+
+        .credential-card p {
+            margin: 8px 0;
+            color: #333;
+        }
+
+        /* New styles for alert box */
+        .alert {
+            padding: 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert .close-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="app-title">GlobiQ Password Manager</h1>
+
+    <!-- Alert box for messages -->
+    <div class="alert" style="display: none;"></div>
+
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" data-tab="addCredential">Add Credential</div>
+            <div class="tab" data-tab="viewCredentials">View Credentials</div>
+        </div>
+
+        <div id="addCredential" class="tab-content active">
+            <div class="add-password-form">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" class="input-field" placeholder="Enter credential name">
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" class="input-field" placeholder="Enter username">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-input-group">
+                        <input type="password" id="password" class="input-field" placeholder="Enter password">
+                        <div class="password-strength">
+                            <div class="password-strength-bar"></div>
+                        </div>
+                        <div id="passwordStrengthText">Password Strength: Not Set</div>
+                    </div>
+                </div>
+
+                <button id="saveCredential" class="save-button">Save Credential</button>
+            </div>
+        </div>
+
+        <div id="viewCredentials" class="tab-content">
+            <div class="search-container">
+                <input type="text" id="searchCredentials" class="input-field" placeholder="Search credentials...">
+            </div>
+            <div id="passwordList" class="credentials-grid">
+                <!-- Credentials will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/password-utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/credential-manager.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        // Initialize Microsoft Teams
+        microsoftTeams.app.initialize().then(() => {
+            // Get Teams context
+            microsoftTeams.app.getContext().then((context) => {
+                console.log('Teams Context:', context);
+                // You can use context.user.id, context.team.id, etc.
+            });
+        });
+    </script>
+</body>
+</html>
