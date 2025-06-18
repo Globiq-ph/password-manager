@@ -25,7 +25,7 @@ if (window.microsoftTeams) {
     microsoftTeams.initialize();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Initialize UI elements
     const passwordInput = document.getElementById('password');
     const saveButton = document.getElementById('saveCredential');
@@ -55,6 +55,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Initialize credential manager
+    if (window.credentialManager) {
+        try {
+            await window.credentialManager.initialize();
+        } catch (error) {
+            console.error('Error initializing credential manager:', error);
+        }
+    }
 
     // Initialize credential list if we're on the view tab
     if (window.location.hash === '#viewCredentials') {

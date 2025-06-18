@@ -1,10 +1,9 @@
 // Global credential manager object
-window.credentialManager = {
-    async loadCredentials() {
+window.credentialManager = {    async initialize() {
         console.log('Initializing credential manager');
         this.passwordList = document.getElementById('passwordList');
         this.searchInput = document.getElementById('searchCredentials');
-        this.loadCredentials();
+        await this.loadCredentials();
         
         // Setup search
         if (this.searchInput) {
@@ -120,7 +119,6 @@ window.credentialManager = {
 
     escapeHtml(unsafe) {
         return unsafe
-            .toString()
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
