@@ -26,9 +26,7 @@ window.credentialManager = {    async initialize() {
             if (!credentials || credentials.length === 0) {
                 this.passwordList.innerHTML = '<p class="no-results">No credentials found</p>';
                 return;
-            }
-
-            // Create HTML for each credential
+            }            // Create HTML for each credential
             const html = credentials.map(cred => `
                 <div class="credential-item" data-id="${cred._id}">
                     <h3>${this.escapeHtml(cred.name)}</h3>
@@ -36,10 +34,14 @@ window.credentialManager = {    async initialize() {
                     <div class="password-section">
                         <strong>Password:</strong> 
                         <span class="password-value" data-id="${cred._id}">********</span>
-                        <button class="toggle-password btn" data-id="${cred._id}" data-password="${this.escapeHtml(cred.password)}">
+                        <button class="toggle-password btn" data-id="${cred._id}" 
+                                onclick="credentialManager.togglePassword('${cred._id}', '${this.escapeHtml(cred.password)}', this)">
                             Show
                         </button>
-                        <button class="delete-credential btn" data-id="${cred._id}">Delete</button>
+                        <button class="delete-credential btn" data-id="${cred._id}"
+                                onclick="credentialManager.deleteCredential('${cred._id}', this)">
+                            Delete
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -124,7 +126,49 @@ window.credentialManager = {    async initialize() {
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
-    }
+    },
+
+    async deleteCredential(id, buttonElement) {
+        console.log('Delete clicked for credential:', id);
+        if (!id) {
+            console.error('Missing credential ID');
+            return;
+        }
+
+        if (confirm('Are you sure you want to delete this credential?')) {
+            try {
+                await api.deleteCredential(id);
+                console.log('Credential deleted successfully');
+                
+                // Remove the credential item from the DOM
+                const item = buttonElement.closest('.credential-item');
+                if (item) {
+                    item.remove();
+                }
+                
+                // Reload credentials to ensure sync
+                await this.loadCredentials();
+            } catch (error) {
+                console.error('Error deleting credential:', error);
+                alert('Failed to delete credential: ' + error.message);
+            }
+        }
+    },
+
+    togglePassword(id, password, buttonElement) {
+        console.log('Toggle password clicked for:', id);
+        const passwordSpan = this.passwordList.querySelector(`.password-value[data-id="${id}"]`);
+        
+        if (passwordSpan) {
+            if (passwordSpan.textContent === '********') {
+                passwordSpan.textContent = password;
+                buttonElement.textContent = 'Hide';
+            } else {
+                passwordSpan.textContent = '********';
+                buttonElement.textContent = 'Show';
+            }
+        }
+    },
 };
 
 // Initialize when the DOM is ready
