@@ -4,51 +4,68 @@ const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
 const connectDB = require('./config/db');
-const mongoose = require('mongoose');
 
 const app = express();
+
+// Parse JSON bodies with increased limit - THIS MUST COME BEFORE OTHER MIDDLEWARE
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Trust proxy
 app.set('trust proxy', 1);
 
-// CORS configuration
-app.use(cors());  // Allow all origins temporarily for debugging
+// CORS configuration - more permissive for debugging
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-User-Name', 'X-User-Email'],
+    credentials: true
+}));
 
-// Add CORS headers manually as well
+// Additional CORS headers for problematic clients
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-User-Id, X-User-Name, X-User-Email');
     res.header('Access-Control-Allow-Credentials', 'true');
     
-    // Handle OPTIONS requests
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
-    
     next();
 });
 
-// Basic security headers with relaxed CSP for development
+// Basic security headers
 app.use(helmet({
-    contentSecurityPolicy: false, // Disable CSP temporarily for debugging
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// Request logging middleware
+// Request logging middleware - AFTER body parsing
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
-    if (req.method === 'POST') {
-        console.log('POST body:', { ...req.body, password: req.body.password ? '********' : undefined });
+    const timestamp = new Date().toISOString();
+    console.log(`${timestamp} ${req.method} ${req.url}`);
+    
+    // Log headers
+    console.log('Headers:', {
+        'content-type': req.headers['content-type'],
+        'x-user-id': req.headers['x-user-id'],
+        'x-user-name': req.headers['x-user-name'],
+        'x-user-email': req.headers['x-user-email']
+    });
+
+    // Safely log request body for POST/PUT requests
+    if (['POST', 'PUT'].includes(req.method) && req.body) {
+        const sanitizedBody = { ...req.body };
+        if (sanitizedBody.password) {
+            sanitizedBody.password = '********';
+        }
+        console.log('Request body:', sanitizedBody);
     }
-    console.log('Headers:', req.headers);
+
     next();
 });
-
-// Parse JSON bodies with increased limit
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Connect to database
 connectDB().catch(err => {
@@ -65,8 +82,7 @@ app.use('/api/credentials', require('./routes/credentials'));
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'ok', 
-        timestamp: new Date().toISOString(),
-        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+        timestamp: new Date().toISOString()
     });
 });
 
@@ -75,8 +91,14 @@ app.use((err, req, res, next) => {
     console.error('Global error handler:', err);
     res.status(err.status || 500).json({
         message: err.message || 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err : {}
+        error: process.env.NODE_ENV === 'development' ? err : {},
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
+});
+
+// Handle 404s
+app.use((req, res) => {
+    res.status(404).json({ message: 'Route not found' });
 });
 
 const PORT = process.env.PORT || 3000;

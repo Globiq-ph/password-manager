@@ -48,7 +48,7 @@ const api = {
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'GET',
                 headers: this.getAuthHeaders(),
-                credentials: 'include'
+                mode: 'cors'
             });
             
             return await this.handleResponse(response);
@@ -61,50 +61,44 @@ const api = {
     async addCredential(data) {
         try {
             console.log('Adding credential...');
-            console.log('Request data:', { ...data, password: '********' });
             
+            // Validate required fields
+            if (!data.name || !data.username || !data.password) {
+                throw new Error('Missing required fields: name, username, and password are required');
+            }
+
             // Get user context
             const headers = this.getAuthHeaders();
             
-            // Add user context to credential data
-            const credentialData = {
-                ...data,
-                ownerId: headers['X-User-Id'],
-                ownerName: headers['X-User-Name'],
-                ownerEmail: headers['X-User-Email'],
+            // Prepare the request data
+            const requestData = {
+                name: data.name,
+                username: data.username,
+                password: data.password,
                 project: data.project || 'Default',
                 category: data.category || 'General',
                 status: data.status || 'active',
-                isAdmin: data.isAdmin || false
+                isAdmin: data.isAdmin || false,
+                ownerId: headers['X-User-Id'],
+                ownerName: headers['X-User-Name'],
+                ownerEmail: headers['X-User-Email']
             };
+
+            console.log('Sending request with data:', {
+                ...requestData,
+                password: '********'
+            });
 
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'POST',
-                headers: headers,
-                credentials: 'include',
-                body: JSON.stringify(credentialData)
+                headers: this.getAuthHeaders(),
+                mode: 'cors',
+                body: JSON.stringify(requestData)
             });
 
-            console.log('Response status:', response.status);
             return await this.handleResponse(response);
         } catch (error) {
             console.error('Error in addCredential:', error);
-            throw error;
-        }
-    },
-
-    async deleteCredential(id) {
-        try {
-            console.log('Deleting credential:', id);
-            const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
-                method: 'DELETE',
-                headers: this.getAuthHeaders(),
-                credentials: 'include'
-            });
-
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error in deleteCredential:', error);
             throw error;
         }
     },
@@ -115,13 +109,29 @@ const api = {
             const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
                 method: 'PUT',
                 headers: this.getAuthHeaders(),
-                credentials: 'include',
+                mode: 'cors',
                 body: JSON.stringify(data)
             });
 
             return await this.handleResponse(response);
         } catch (error) {
             console.error('Error in updateCredential:', error);
+            throw error;
+        }
+    },
+
+    async deleteCredential(id) {
+        try {
+            console.log('Deleting credential:', id);
+            const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
+                method: 'DELETE',
+                headers: this.getAuthHeaders(),
+                mode: 'cors'
+            });
+
+            return await this.handleResponse(response);
+        } catch (error) {
+            console.error('Error in deleteCredential:', error);
             throw error;
         }
     }
