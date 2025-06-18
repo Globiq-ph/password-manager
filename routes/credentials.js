@@ -3,11 +3,40 @@ const router = express.Router();
 const Credential = require('../models/credential');
 const { encrypt, decrypt } = require('../utils/encryption');
 
-// Get all credentials
-router.get('/', async (req, res) => {
+// Middleware to check if user is admin
+const isAdmin = async (req, res, next) => {
     try {
-        console.log('GET /credentials - Fetching all credentials');
-        const credentials = await Credential.find({}).sort({ createdAt: -1 });
+        const userId = req.headers['x-user-id'];
+        const userEmail = req.headers['x-user-email'];
+        
+        // TODO: Replace with your actual admin check logic
+        const adminEmails = ['admin@globiq.com']; // Replace with your admin list
+        const isAdmin = adminEmails.includes(userEmail);
+        
+        req.isAdmin = isAdmin;
+        next();
+    } catch (error) {
+        res.status(403).json({ message: 'Authorization failed', error: error.message });
+    }
+};
+
+// Get credentials based on user role
+router.get('/', isAdmin, async (req, res) => {
+    try {
+        console.log('GET /credentials - Fetching credentials');
+        const userId = req.headers['x-user-id'];
+        
+        // Build query based on user role
+        let query = req.isAdmin 
+            ? {} // Admins can see all credentials
+            : {
+                $or: [
+                    { ownerId: userId },
+                    { 'sharedWith.userId': userId }
+                ]
+            };
+
+        const credentials = await Credential.find(query).sort({ createdAt: -1 });
         console.log(`Found ${credentials.length} credentials`);
         
         // Decrypt passwords before sending
@@ -39,12 +68,21 @@ router.get('/', async (req, res) => {
 });
 
 // Add new credential
-router.post('/', async (req, res) => {
+router.post('/', isAdmin, async (req, res) => {
     try {
-        const { name, username, password, project, category, status, isAdmin } = req.body;
+        const { name, username, password, project, category, status, isAdmin: isAdminCred } = req.body;
         
         if (!name || !username || !password) {
             return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        const userId = req.headers['x-user-id'];
+        const userName = req.headers['x-user-name'];
+        const userEmail = req.headers['x-user-email'];
+
+        // Only admin users can create admin credentials
+        if (isAdminCred && !req.isAdmin) {
+            return res.status(403).json({ message: 'Only admins can create admin credentials' });
         }
 
         // Encrypt the password
@@ -62,7 +100,16 @@ router.post('/', async (req, res) => {
             project: project || 'Default',
             category: category || 'General',
             status: status || 'active',
-            isAdmin: isAdmin || false
+            isAdmin: isAdminCred || false,
+            ownerId: userId,
+            ownerName: userName,
+            ownerEmail: userEmail,
+            lastModifiedBy: {
+                userId,
+                userName,
+                userEmail,
+                timestamp: new Date()
+            }
         });
 
         const savedCredential = await credential.save();
@@ -80,19 +127,29 @@ router.post('/', async (req, res) => {
 });
 
 // Update credential
-router.put('/:id', async (req, res) => {
+router.put('/:id', isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = { ...req.body };
-        console.log(`PUT /credentials/${id} - Updating credential`);
+        const userId = req.headers['x-user-id'];
+        const userName = req.headers['x-user-name'];
+        const userEmail = req.headers['x-user-email'];
 
-        if (!id) {
-            return res.status(400).json({ message: 'Credential ID is required' });
-        }
-
+        // Find the credential
         const credential = await Credential.findById(id);
         if (!credential) {
             return res.status(404).json({ message: 'Credential not found' });
+        }
+
+        // Check permission
+        if (!req.isAdmin && credential.ownerId !== userId) {
+            return res.status(403).json({ message: 'Not authorized to update this credential' });
+        }
+
+        const updateData = { ...req.body };
+
+        // Only admin can change admin status
+        if (!req.isAdmin) {
+            delete updateData.isAdmin;
         }
 
         // If password is being updated, encrypt it
@@ -105,6 +162,14 @@ router.put('/:id', async (req, res) => {
             };
         }
 
+        // Update lastModifiedBy
+        updateData.lastModifiedBy = {
+            userId,
+            userName,
+            userEmail,
+            timestamp: new Date()
+        };
+
         // Update the credential
         const updatedCredential = await Credential.findByIdAndUpdate(
             id,
@@ -115,7 +180,7 @@ router.put('/:id', async (req, res) => {
         // Return decrypted version
         const returnCred = updatedCredential.toObject();
         if (updateData.password && typeof req.body.password === 'string') {
-            returnCred.password = req.body.password; // Send back original password if it was updated
+            returnCred.password = req.body.password;
         } else {
             try {
                 returnCred.password = decrypt({
@@ -137,10 +202,10 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete credential
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        console.log(`DELETE /credentials/${id} - Deleting credential`);
+        const userId = req.headers['x-user-id'];
 
         if (!id) {
             console.log('No ID provided');
@@ -153,12 +218,48 @@ router.delete('/:id', async (req, res) => {
             return res.status(404).json({ message: 'Credential not found' });
         }
 
+        // Check permission
+        if (!req.isAdmin && credential.ownerId !== userId) {
+            return res.status(403).json({ message: 'Not authorized to delete this credential' });
+        }
+
         await Credential.findByIdAndDelete(id);
         console.log(`Successfully deleted credential ${id}`);
         res.json({ message: 'Credential deleted successfully' });
     } catch (error) {
         console.error('Error in DELETE /credentials/:id:', error);
         res.status(500).json({ message: 'Error deleting credential', error: error.message });
+    }
+});
+
+// Share credential with other users (Admin only)
+router.post('/:id/share', isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId, userName, userEmail, accessLevel } = req.body;
+
+        if (!req.isAdmin) {
+            return res.status(403).json({ message: 'Only admins can share credentials' });
+        }
+
+        const credential = await Credential.findById(id);
+        if (!credential) {
+            return res.status(404).json({ message: 'Credential not found' });
+        }
+
+        // Add user to sharedWith array
+        credential.sharedWith.push({
+            userId,
+            userName,
+            userEmail,
+            accessLevel: accessLevel || 'read'
+        });
+
+        await credential.save();
+        res.json({ message: 'Credential shared successfully' });
+    } catch (error) {
+        console.error('Error sharing credential:', error);
+        res.status(500).json({ message: 'Error sharing credential', error: error.message });
     }
 });
 

@@ -289,6 +289,133 @@
         .admin-view .user-only {
             display: none;
         }
+
+        .admin-dashboard {
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(128,0,0,0.08);
+            padding: 24px;
+        }
+
+        .admin-section {
+            margin-bottom: 24px;
+        }
+
+        .admin-section h3 {
+            color: var(--maroon);
+            margin-bottom: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: #f9f9f9;
+            border-radius: 4px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-title {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--maroon);
+        }
+
+        .activity-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            border-radius: 4px;
+            padding: 12px;
+        }
+
+        .activity-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-management {
+            background: #f9f9f9;
+            border-radius: 4px;
+            padding: 12px;
+        }
+
+        .user-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .danger-button {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .danger-button:hover {
+            background: #c82333;
+        }
+
+        .primary-button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .primary-button:hover {
+            background: #0069d9;
+        }
+
+        .secondary-button {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .secondary-button:hover {
+            background: #5a6268;
+        }
     </style>
 </head>
 <body>
@@ -297,28 +424,29 @@
     <!-- Alert box for messages -->
     <div class="alert" style="display: none;"></div>
 
-    <!-- Role selector if user has admin rights -->
-    <div id="roleSelector" class="role-selector" style="display: none;">
-        <button class="role-button active" data-role="user">User View</button>
-        <button class="role-button" data-role="admin">Admin View</button>
-    </div>
-
     <div class="container">
+        <!-- Admin/User mode selector -->
+        <div id="roleSelector" class="role-selector" style="display: none;">
+            <button class="role-button active" data-role="user">User Mode</button>
+            <button class="role-button" data-role="admin">Admin Mode</button>
+        </div>
+
         <div class="tabs">
             <div class="tab active" data-tab="addCredential">Add Credential</div>
             <div class="tab" data-tab="viewCredentials">View Credentials</div>
+            <div class="tab admin-only" data-tab="adminPanel" style="display: none;">Admin Panel</div>
         </div>
 
         <div id="addCredential" class="tab-content active">
             <div class="add-password-form">                
                 <div class="form-group">
                     <label for="project">Project</label>
-                    <input type="text" id="project" class="input-field" placeholder="Enter project name" required>
+                    <input type="text" id="project" class="input-field" placeholder="Enter project name">
                 </div>
 
                 <div class="form-group">
                     <label for="category">Category</label>
-                    <input type="text" id="category" class="input-field" placeholder="Enter category name" required>
+                    <input type="text" id="category" class="input-field" placeholder="Enter category name">
                 </div>
 
                 <div class="form-group">
@@ -359,7 +487,8 @@
 
                 <button id="saveCredential" class="save-button">Save Credential</button>
             </div>
-        </div>        
+        </div>
+
         <div id="viewCredentials" class="tab-content">
             <div class="view-controls">
                 <div class="filter-container">
@@ -372,6 +501,59 @@
             </div>
             <div id="passwordList" class="credentials-grid">
                 <!-- Credentials will be populated here -->
+            </div>
+        </div>
+
+        <div id="adminPanel" class="tab-content admin-only">
+            <div class="admin-dashboard">
+                <h2>Admin Dashboard</h2>
+                
+                <div class="admin-section">
+                    <h3>Credential Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-title">Total Credentials</div>
+                            <div class="stat-value" id="totalCredentials">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Active Credentials</div>
+                            <div class="stat-value" id="activeCredentials">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Expired Credentials</div>
+                            <div class="stat-value" id="expiredCredentials">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Restricted Credentials</div>
+                            <div class="stat-value" id="restrictedCredentials">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-list" id="recentActivity">
+                        <!-- Activity items will be populated here -->
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h3>User Management</h3>
+                    <div class="user-management">
+                        <div class="user-list" id="userList">
+                            <!-- User list will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h3>Bulk Actions</h3>
+                    <div class="bulk-actions">
+                        <button id="bulkDelete" class="danger-button">Delete Selected</button>
+                        <button id="bulkExport" class="primary-button">Export Selected</button>
+                        <button id="bulkStatusUpdate" class="secondary-button">Update Status</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

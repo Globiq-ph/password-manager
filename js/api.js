@@ -1,10 +1,22 @@
 const API_BASE_URL = 'https://password-manager-wab6.onrender.com/api';
 
 const api = {
+    // Helper to get auth headers
+    getAuthHeaders() {
+        return {
+            'Content-Type': 'application/json',
+            'X-User-Id': localStorage.getItem('teamsUserId') || '',
+            'X-User-Name': localStorage.getItem('teamsUserName') || '',
+            'X-User-Email': localStorage.getItem('teamsUserEmail') || ''
+        };
+    },
+
     async getCredentials() {
         try {
             console.log('Fetching credentials...');
-            const response = await fetch(`${API_BASE_URL}/credentials`);
+            const response = await fetch(`${API_BASE_URL}/credentials`, {
+                headers: this.getAuthHeaders()
+            });
             
             if (!response.ok) {
                 throw new Error(`Failed to fetch credentials: ${response.status}`);
@@ -21,7 +33,8 @@ const api = {
         try {
             console.log('Deleting credential:', id);
             const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: this.getAuthHeaders()
             });
 
             if (!response.ok) {
@@ -49,9 +62,7 @@ const api = {
 
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify(credentialData)
             });
 
@@ -71,9 +82,7 @@ const api = {
             console.log('Updating credential:', id);
             const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify(data)
             });
 
@@ -84,6 +93,26 @@ const api = {
             return await response.json();
         } catch (error) {
             console.error('Error in updateCredential:', error);
+            throw error;
+        }
+    },
+
+    async shareCredential(id, userData) {
+        try {
+            console.log('Sharing credential:', id);
+            const response = await fetch(`${API_BASE_URL}/credentials/${id}/share`, {
+                method: 'POST',
+                headers: this.getAuthHeaders(),
+                body: JSON.stringify(userData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to share credential: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error in shareCredential:', error);
             throw error;
         }
     }
