@@ -108,13 +108,24 @@ function initializeUIComponents() {
     }
 
     // Tab switching
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', function(e) {
-            e.preventDefault();
-            const tabName = this.getAttribute('data-tab');
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set initial active tab
+        const initialTab = document.querySelector('.tab.active');
+        if (initialTab) {
+            const tabName = initialTab.getAttribute('data-tab');
             if (tabName) {
                 switchTab(tabName);
             }
+        }
+        
+        // Add click event listeners to all tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.getAttribute('data-tab');
+                if (tabName) {
+                    switchTab(tabName);
+                }
+            });
         });
     });
 
@@ -356,13 +367,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Tab switching
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', function(e) {
-            e.preventDefault();
-            const tabName = this.getAttribute('data-tab');
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set initial active tab
+        const initialTab = document.querySelector('.tab.active');
+        if (initialTab) {
+            const tabName = initialTab.getAttribute('data-tab');
             if (tabName) {
                 switchTab(tabName);
             }
+        }
+        
+        // Add click event listeners to all tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.getAttribute('data-tab');
+                if (tabName) {
+                    switchTab(tabName);
+                }
+            });
         });
     });
 
@@ -419,25 +441,38 @@ function updatePasswordStrength(password) {
 }
 
 function switchTab(tabName) {
-    // Hide all tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.style.display = 'none';
-        tab.classList.remove('active');
+    console.log('Switching to tab:', tabName);
+    
+    // Hide all tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+        content.classList.remove('active');
     });
     
-    // Remove active class from all tab buttons
+    // Remove active class from all tabs
     document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
     });
     
-    // Show selected tab
-    const selectedTab = document.getElementById(tabName);
-    const selectedTabButton = document.querySelector(`[data-tab="${tabName}"]`);
+    // Show selected tab content
+    const selectedContent = document.getElementById(tabName);
+    const selectedTab = document.querySelector(`[data-tab="${tabName}"]`);
     
-    if (selectedTab && selectedTabButton) {
-        selectedTab.style.display = 'block';
+    if (selectedContent && selectedTab) {
+        selectedContent.style.display = 'block';
+        selectedContent.classList.add('active');
         selectedTab.classList.add('active');
-        selectedTabButton.classList.add('active');
+        
+        // Handle specific tab actions
+        if (tabName === 'adminPanel' && !document.querySelector('#adminCredentialsList .admin-grid-row')) {
+            loadAdminDashboard();
+        } else if (tabName === 'viewCredentials' && window.credentialManager) {
+            window.credentialManager.loadCredentials();
+        }
+    } else {
+        console.error('Tab not found:', tabName);
+    }
+}
         
         // Load credentials if viewing credentials tab
         if (tabName === 'viewCredentials' && window.credentialManager) {
@@ -581,45 +616,27 @@ function showMessage(message, type = 'info') {
     }
 }
 
-// Password visibility toggle
-function togglePasswordVisibility() {
-    const passwordInput = document.getElementById('adminPassword');
-    const toggleButton = document.querySelector('.toggle-password i');
+const expectedUsername = 'john doe';
+const expectedPassword = 'password';
     
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        toggleButton.classList.remove('fa-eye');
-        toggleButton.classList.add('fa-eye-slash');
-    } else {
-        passwordInput.type = 'password';
-        toggleButton.classList.remove('fa-eye-slash');
-        toggleButton.classList.add('fa-eye');
-    }
+let errors = [];
+    
+if (username.trim() === '') {
+    errors.push('Username is required');
 }
-
-// Enhanced admin login validation
-function validateAdminCredentials(username, password) {
-    const expectedUsername = 'john doe';
-    const expectedPassword = 'password';
     
-    let errors = [];
+if (password === '') {
+    errors.push('Password is required');
+}
     
-    if (username.trim() === '') {
-        errors.push('Username is required');
-    }
+if (username !== expectedUsername || password !== expectedPassword) {
+    errors.push('Invalid credentials');
+}
     
-    if (password === '') {
-        errors.push('Password is required');
-    }
-    
-    if (username !== expectedUsername || password !== expectedPassword) {
-        errors.push('Invalid credentials');
-    }
-    
-    return {
-        isValid: errors.length === 0,
-        errors: errors
-    };
+return {
+    isValid: errors.length === 0,
+    errors: errors
+};
 }
 
 // Show error message with animation
@@ -691,3 +708,63 @@ window.deleteCredential = async function(id) {
         }
     }
 };
+
+// Enhanced admin login handling
+function handleAdminLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('adminUsername').value.toLowerCase();
+    const password = document.getElementById('adminPassword').value;
+
+    if (username === 'john doe' && password === 'password') {
+        // Store admin status
+        localStorage.setItem('isAdmin', 'true');
+        localStorage.setItem('teamsUserName', 'john doe');  // Important for API auth
+        
+        // Show admin tab and update UI
+        const adminTab = document.querySelector('.admin-tab');
+        const adminLoginOverlay = document.getElementById('adminLoginOverlay');
+        
+        if (adminTab) adminTab.style.display = 'block';
+        if (adminLoginOverlay) adminLoginOverlay.style.display = 'none';
+        
+        // Switch to admin panel
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+                content.classList.remove('active');
+            });
+            adminPanel.style.display = 'block';
+            adminPanel.classList.add('active');
+        }
+        
+        // Update tab status
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.getAttribute('data-tab') === 'adminPanel') {
+                tab.classList.add('active');
+            }
+        });
+        
+        showMessage('Admin login successful!', 'success');
+        loadAdminDashboard();
+    } else {
+        showMessage('Invalid admin credentials!', 'error');
+    }
+}
+
+// Initialize admin functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    if (adminLoginForm) {
+        adminLoginForm.addEventListener('submit', handleAdminLogin);
+    }
+
+    // Check if user is already logged in as admin
+    if (localStorage.getItem('isAdmin') === 'true') {
+        const adminTab = document.querySelector('.admin-tab');
+        if (adminTab) {
+            adminTab.style.display = 'block';
+        }
+    }
+});

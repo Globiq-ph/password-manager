@@ -5,10 +5,10 @@ const { encrypt, decrypt } = require('../utils/encryption');
 
 // Admin middleware
 const isAdmin = (req, res, next) => {
-    const userId = req.headers['user-context'];
+    const userId = req.headers['x-user-id'] || req.headers['user-context'];
+    const userName = req.headers['x-user-name'];
     // In a real application, you would verify against a database
-    // For now, we'll use the localStorage value set in main.js
-    if (userId === 'dev-user') {
+    if (userId === 'dev-user' && userName === 'john doe') {
         next();
     } else {
         res.status(403).json({ error: 'Unauthorized' });
@@ -45,15 +45,16 @@ router.get('/user', async (req, res) => {
 // Create new credential
 router.post('/', async (req, res) => {
     try {
-        const userId = req.headers['user-context'];
-        if (!userId) {
+        const userId = req.headers['x-user-id'] || req.headers['user-context'];
+        const userName = req.headers['x-user-name'];
+        if (!userId || !userName) {
             return res.status(400).json({ error: 'User context required' });
         }
         
         const credential = new Credential({
             ...req.body,
             userId,
-            createdBy: req.headers['user-name'] || userId,
+            createdBy: userName,
             status: 'active'
         });
         

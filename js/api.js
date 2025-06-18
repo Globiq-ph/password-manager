@@ -1,20 +1,24 @@
 const API_BASE_URL = 'https://password-manager-wab6.onrender.com/api';
 
 const api = {
-    // Helper to get auth headers with fallback values
-    getAuthHeaders() {
+    // Helper to get auth headers with fallback values    getAuthHeaders() {
         // Get user info from localStorage with fallbacks
         const userId = localStorage.getItem('teamsUserId') || 'dev-user';
         const userName = localStorage.getItem('teamsUserName') || 'Developer';
         const userEmail = localStorage.getItem('teamsUserEmail') || 'dev@globiq.com';
 
-        return {
+        const headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-User-Id': userId,
-            'X-User-Name': userName,
-            'X-User-Email': userEmail
+            'x-user-id': userId,
+            'x-user-name': userName,
+            'x-user-email': userEmail
         };
+
+        // Add legacy header for backward compatibility
+        headers['user-context'] = userId;
+        
+        return headers;
     },
 
     async handleResponse(response) {
