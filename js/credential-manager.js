@@ -4,7 +4,8 @@ window.credentialManager = {
     currentRole: 'user',
     projects: new Set(['Default']),
     categories: new Set(['General']),
-    isAdmin: false, // Will be set based on Teams context
+    isAdmin: false,
+    isLoading: false,
 
     initialize() {
         if (this.isInitialized) return this;
@@ -38,7 +39,6 @@ window.credentialManager = {
             });
         }
         
-        // Set initialized flag
         this.isInitialized = true;
         
         // Load initial data if we're on the view credentials tab
@@ -57,7 +57,7 @@ window.credentialManager = {
         }
 
         try {
-            this.passwordList.innerHTML = '<p class="loading">Loading credentials...</p>';
+            this.setLoading(true);
             const credentials = await api.getCredentials();
             
             if (!credentials || credentials.length === 0) {
@@ -80,8 +80,29 @@ window.credentialManager = {
 
         } catch (error) {
             console.error('Error loading credentials:', error);
-            this.passwordList.innerHTML = `<p class="error">Error loading credentials: ${error.message}</p>`;
+            this.passwordList.innerHTML = `
+                <div class="error-container">
+                    <p class="error">Error loading credentials: ${error.message}</p>
+                    <button onclick="window.credentialManager.loadCredentials()">Retry</button>
+                </div>
+            `;
+        } finally {
+            this.setLoading(false);
         }
+    },
+
+    setLoading(isLoading) {
+        this.isLoading = isLoading;
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = isLoading ? 'block' : 'none';
+        }
+        
+        // Disable/enable interactive elements
+        const inputs = document.querySelectorAll('input, button, select');
+        inputs.forEach(input => {
+            input.disabled = isLoading;
+        });
     },
 
     switchRole(role) {

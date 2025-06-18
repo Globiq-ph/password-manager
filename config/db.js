@@ -1,4 +1,3 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
@@ -8,11 +7,17 @@ const connectDB = async () => {
         }
 
         console.log('Connecting to MongoDB...');
-        mongoose.set('debug', true);  // Enable debugging
+        mongoose.set('debug', true); // Enable debugging
 
-        const conn = await mongoose.connect(process.env.MONGODB_URI, {
+        // Configure mongoose
+        mongoose.set('strictQuery', false);
+        
+        // Connection options
+        const options = {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
             serverApi: {
-                version: ServerApiVersion.v1,
+                version: '1',
                 strict: true,
                 deprecationErrors: true,
             },
@@ -21,12 +26,13 @@ const connectDB = async () => {
             maxPoolSize: 10,
             connectTimeoutMS: 5000,
             socketTimeoutMS: 45000,
-        });
+        };
 
+        const conn = await mongoose.connect(process.env.MONGODB_URI, options);
         console.log(`MongoDB Connected: ${conn.connection.host}`);
 
         // Send a ping to confirm a successful connection
-        await conn.connection.db.command({ ping: 1 });
+        await conn.connection.db.admin().ping();
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         // Handle connection events
@@ -35,16 +41,37 @@ const connectDB = async () => {
         });
 
         mongoose.connection.on('disconnected', () => {
-            console.log('MongoDB disconnected');
+            console.log('MongoDB disconnected. Attempting to reconnect...');
         });
 
         mongoose.connection.on('reconnected', () => {
             console.log('MongoDB reconnected');
         });
 
+        // Handle process termination
+        process.on('SIGINT', async () => {
+            try {
+                await mongoose.connection.close();
+                console.log('MongoDB connection closed through app termination');
+                process.exit(0);
+            } catch (err) {
+                console.error('Error during MongoDB disconnection:', err);
+                process.exit(1);
+            }
+        });
+
+        return conn;
     } catch (error) {
-        console.error(`MongoDB Connection Error: ${error.message}`);
-        process.exit(1);
+        console.error(`MongoDB Connection Error:`, error);
+        // Log more details about the connection error
+        if (error.name === 'MongoServerError') {
+            console.error('MongoDB Server Error Details:', {
+                code: error.code,
+                codeName: error.codeName,
+                errorLabels: error.errorLabels,
+            });
+        }
+        throw error; // Re-throw to be handled by the caller
     }
 };
 

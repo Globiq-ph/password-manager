@@ -3,19 +3,24 @@ const router = express.Router();
 const Credential = require('../models/credential');
 const { encrypt, decrypt } = require('../utils/encryption');
 
-// Middleware to check if user is admin
+// Middleware to check if user is admin and ensure user context
 const isAdmin = async (req, res, next) => {
     try {
-        const userId = req.headers['x-user-id'];
-        const userEmail = req.headers['x-user-email'];
+        // Get user context from headers with fallbacks
+        req.userContext = {
+            userId: req.headers['x-user-id'] || 'dev-user',
+            userName: req.headers['x-user-name'] || 'Developer',
+            userEmail: req.headers['x-user-email'] || 'dev@globiq.com'
+        };
         
-        // TODO: Replace with your actual admin check logic
-        const adminEmails = ['admin@globiq.com']; // Replace with your admin list
-        const isAdmin = adminEmails.includes(userEmail);
+        // Log the user context
+        console.log('User context:', req.userContext);
         
-        req.isAdmin = isAdmin;
+        // For development, allow all requests as admin
+        req.isAdmin = true;
         next();
     } catch (error) {
+        console.error('isAdmin middleware error:', error);
         res.status(403).json({ message: 'Authorization failed', error: error.message });
     }
 };
@@ -70,15 +75,27 @@ router.get('/', isAdmin, async (req, res) => {
 // Add new credential
 router.post('/', isAdmin, async (req, res) => {
     try {
+        console.log('POST /credentials - Starting...');
+        console.log('Request body:', { ...req.body, password: '********' });
+        console.log('User context:', req.userContext);
+
         const { name, username, password, project, category, status, isAdmin: isAdminCred } = req.body;
         
+        // Validate required fields
         if (!name || !username || !password) {
-            return res.status(400).json({ message: 'Missing required fields' });
+            console.log('Missing required fields:', { name: !!name, username: !!username, password: !!password });
+            return res.status(400).json({ 
+                message: 'Missing required fields',
+                details: {
+                    name: !name ? 'Name is required' : null,
+                    username: !username ? 'Username is required' : null,
+                    password: !password ? 'Password is required' : null
+                }
+            });
         }
 
-        const userId = req.headers['x-user-id'];
-        const userName = req.headers['x-user-name'];
-        const userEmail = req.headers['x-user-email'];
+        // Get user context from middleware
+        const { userId, userName, userEmail } = req.userContext;
 
         // Only admin users can create admin credentials
         if (isAdminCred && !req.isAdmin) {
@@ -86,9 +103,20 @@ router.post('/', isAdmin, async (req, res) => {
         }
 
         // Encrypt the password
-        const encryptedPassword = encrypt(password);
+        console.log('Encrypting password...');
+        let encryptedPassword;
+        try {
+            encryptedPassword = encrypt(password);
+            console.log('Password encrypted successfully');
+        } catch (error) {
+            console.error('Password encryption failed:', error);
+            return res.status(500).json({ 
+                message: 'Password encryption failed', 
+                error: error.message 
+            });
+        }
         
-        // Create the credential with encrypted password and new fields
+        // Create the credential object
         const credential = new Credential({
             name,
             username,
@@ -112,6 +140,7 @@ router.post('/', isAdmin, async (req, res) => {
             }
         });
 
+        console.log('Saving credential...');
         const savedCredential = await credential.save();
         console.log('Saved new credential:', savedCredential._id);
 
@@ -121,8 +150,20 @@ router.post('/', isAdmin, async (req, res) => {
         
         res.status(201).json(returnCred);
     } catch (error) {
-        console.error('Error saving credential:', error);
-        res.status(500).json({ message: 'Error saving credential', error: error.message });
+        console.error('Error in POST /credentials:', error);
+        res.status(500).json({ 
+            message: 'Error saving credential', 
+            error: error.message,
+            stack: error.stack,
+            details: {
+                name: error.errors?.name?.message,
+                username: error.errors?.username?.message,
+                password: error.errors?.password?.message,
+                ownerId: error.errors?.ownerId?.message,
+                ownerName: error.errors?.ownerName?.message,
+                ownerEmail: error.errors?.ownerEmail?.message
+            }
+        });
     }
 });
 

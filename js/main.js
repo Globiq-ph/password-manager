@@ -2,6 +2,11 @@
 microsoftTeams.app.initialize().then(() => {
     console.log('Microsoft Teams SDK initialized');
     
+    // Set default development values first
+    localStorage.setItem('teamsUserId', 'dev-user');
+    localStorage.setItem('teamsUserName', 'Developer');
+    localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
+    
     // Get user context
     microsoftTeams.app.getContext().then((context) => {
         console.log('Got Teams context:', context);
@@ -11,8 +16,8 @@ microsoftTeams.app.initialize().then(() => {
             localStorage.setItem('teamsUserName', context.user.displayName);
             localStorage.setItem('teamsUserId', context.user.id);
 
-            // Check if user is admin (you'll need to implement this logic based on your requirements)
-            const isAdmin = checkIfUserIsAdmin(context.user);
+            // For development, always set as admin
+            const isAdmin = true;
             window.credentialManager.isAdmin = isAdmin;
 
             // Initialize UI with role information
@@ -20,28 +25,25 @@ microsoftTeams.app.initialize().then(() => {
                 document.body.classList.add('has-admin-rights');
                 const roleSelector = document.getElementById('roleSelector');
                 if (roleSelector) roleSelector.style.display = 'flex';
+                const adminTab = document.querySelector('.tab[data-tab="adminPanel"]');
+                if (adminTab) adminTab.style.display = 'block';
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.style.display = 'block';
+                });
             }
         }
     }).catch(error => {
         console.error('Error getting Teams context:', error);
+        // Keep development values set earlier
     });
 }).catch(error => {
     console.error('Error initializing Teams SDK:', error);
-    // Continue in web-only mode
-    console.log('Running in web-only mode');
+    // Keep development values set earlier
 });
 
 // Initialize Teams if available
 if (window.microsoftTeams) {
     microsoftTeams.initialize();
-}
-
-// Helper function to check if user is admin
-function checkIfUserIsAdmin(user) {
-    // Implement your admin check logic here
-    // For example, check against a list of admin emails or roles
-    const adminEmails = ['admin@globiq.com']; // Replace with your actual admin list
-    return adminEmails.includes(user.userPrincipalName);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -90,7 +92,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 switchTab(tabName);
             }
         });
-    });    // Initialize credential manager if not already initialized
+    });
+
+    // Initialize credential manager if not already initialized
     if (window.credentialManager && !window.credentialManager.isInitialized) {
         window.credentialManager.initialize();
     }
@@ -165,47 +169,69 @@ function switchTab(tabName) {
 }
 
 async function handleSaveCredential() {
-    // Get form data
-    const nameInput = document.getElementById('name');
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
-    const projectSelect = document.getElementById('project');
-    const categorySelect = document.getElementById('category');
-    const statusSelect = document.getElementById('status');
-    const isAdminCheckbox = document.getElementById('isAdmin');
     const saveButton = document.getElementById('saveCredential');
+    if (saveButton) saveButton.disabled = true;
 
     try {
-        if (saveButton) saveButton.disabled = true;
+        console.log('Starting save credential process...');
+        
+        // Verify user context
+        const userContext = {
+            id: localStorage.getItem('teamsUserId'),
+            name: localStorage.getItem('teamsUserName'),
+            email: localStorage.getItem('teamsUserEmail')
+        };
 
-        // Validate inputs
-        if (!nameInput || !usernameInput || !passwordInput || !projectSelect || !categorySelect || !statusSelect) {
+        console.log('User context:', userContext);
+
+        if (!userContext.id || !userContext.name || !userContext.email) {
+            throw new Error('User context is missing. Please reload the page.');
+        }
+
+        // Get form elements
+        const nameInput = document.getElementById('name');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const projectInput = document.getElementById('project');
+        const categoryInput = document.getElementById('category');
+        const statusSelect = document.getElementById('status');
+        const isAdminCheckbox = document.getElementById('isAdmin');
+
+        // Check if elements exist
+        if (!nameInput || !usernameInput || !passwordInput) {
             throw new Error('Required form elements not found');
         }
 
-        const name = nameInput.value.trim();
-        const username = usernameInput.value.trim();
-        const password = passwordInput.value;
-        const project = projectSelect.value;
-        const category = categorySelect.value;
-        const status = statusSelect.value;
-        const isAdmin = isAdminCheckbox ? isAdminCheckbox.checked : false;
+        // Get values and validate
+        const formData = {
+            name: nameInput.value.trim(),
+            username: usernameInput.value.trim(),
+            password: passwordInput.value,
+            project: (projectInput?.value || '').trim() || 'Default',
+            category: (categoryInput?.value || '').trim() || 'General',
+            status: statusSelect?.value || 'active',
+            isAdmin: isAdminCheckbox?.checked || false,
+            ownerId: userContext.id,
+            ownerName: userContext.name,
+            ownerEmail: userContext.email
+        };
 
-        if (!name || !username || !password) {
-            throw new Error('Please fill in all required fields');
+        console.log('Form data:', { ...formData, password: '********' });
+
+        // Validate required fields
+        const missingFields = [];
+        if (!formData.name) missingFields.push('Name');
+        if (!formData.username) missingFields.push('Username');
+        if (!formData.password) missingFields.push('Password');
+
+        if (missingFields.length > 0) {
+            throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
         }
 
-        // Save credential with all fields
-        await api.addCredential({
-            name,
-            username,
-            password,
-            project,
-            category,
-            status,
-            isAdmin
-        });
-        
+        // Save credential
+        const savedCredential = await api.addCredential(formData);
+        console.log('Credential saved:', savedCredential._id);
+
         // Show success message
         showMessage('Credential saved successfully!', 'success');
         
@@ -213,43 +239,56 @@ async function handleSaveCredential() {
         nameInput.value = '';
         usernameInput.value = '';
         passwordInput.value = '';
-        projectSelect.value = 'Default';
-        categorySelect.value = 'General';
-        statusSelect.value = 'active';
+        if (projectInput) projectInput.value = '';
+        if (categoryInput) categoryInput.value = '';
+        if (statusSelect) statusSelect.value = 'active';
         if (isAdminCheckbox) isAdminCheckbox.checked = false;
+        
+        // Reset password strength meter
         updatePasswordStrength('');
         
-        // Switch to view tab
+        // Reload credentials list and switch to view tab
+        if (window.credentialManager) {
+            window.credentialManager.loadCredentials();
+        }
         switchTab('viewCredentials');
 
     } catch (error) {
         console.error('Error saving credential:', error);
-        showMessage(error.message, 'error');
+        showMessage(`Failed to save credential: ${error.message}`, 'error');
     } finally {
         if (saveButton) saveButton.disabled = false;
     }
 }
 
-function showMessage(message, type) {
+function showMessage(message, type = 'info') {
     const alertBox = document.querySelector('.alert');
-    if (alertBox) {
-        alertBox.className = `alert ${type}`;
-        alertBox.innerHTML = `
-            ${message}
-            <button class="close-btn">&times;</button>
-        `;
-        alertBox.style.display = 'flex';
+    if (!alertBox) {
+        console.error('Alert box element not found');
+        return;
+    }
 
-        // Add click handler for close button
-        const closeBtn = alertBox.querySelector('.close-btn');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                alertBox.style.display = 'none';
-            });
-        }
+    // Clear any existing timeout
+    if (alertBox._timeoutId) {
+        clearTimeout(alertBox._timeoutId);
+    }
 
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
+    // Configure alert box
+    alertBox.className = `alert ${type}`;
+    alertBox.innerHTML = `
+        <div class="alert-content">
+            <span class="alert-message">${message}</span>
+            <button class="close-btn" onclick="this.parentElement.parentElement.style.display='none'">&times;</button>
+        </div>
+    `;
+    alertBox.style.display = 'flex';
+
+    // For errors, scroll to alert box and don't auto-hide
+    if (type === 'error') {
+        alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+        // Auto-hide after 5 seconds for non-errors
+        alertBox._timeoutId = setTimeout(() => {
             alertBox.style.display = 'none';
         }, 5000);
     }
