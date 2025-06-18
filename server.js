@@ -11,8 +11,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 // CORS configuration
-app.use(cors({
-    origin: 'https://password-manager-for-teams.onrender.com',
+app.use(cors({    origin: ['https://password-manager-wab6.onrender.com', 'https://teams.microsoft.com', 'https://*.teams.microsoft.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -23,7 +22,7 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            connectSrc: ["'self'", "https://password-manager-for-teams.onrender.com"],
+            connectSrc: ["'self'", "https://password-manager-wab6.onrender.com"],
             scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://res.cdn.office.net"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "blob:"],

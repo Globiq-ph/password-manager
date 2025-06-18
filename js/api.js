@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://password-manager-for-teams.onrender.com/api';
+const API_BASE_URL = 'https://password-manager-wab6.onrender.com/api';
 
 const api = {
     async getCredentials() {
