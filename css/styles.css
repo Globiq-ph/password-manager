@@ -13,6 +13,8 @@
     --status-active: #28a745;
     --status-expired: #dc3545;
     --status-restricted: #ffc107;
+    --role-inactive: #6c757d;
+    --role-active: var(--maroon);
 }
 
 * {
@@ -501,6 +503,7 @@ button:hover {
     border-radius: 6px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     border-left: 4px solid var(--status-active);
+    position: relative;
 }
 
 .credential-item.expired {
@@ -528,86 +531,97 @@ button:hover {
 }
 
 .admin-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
     background-color: var(--secondary-color);
-    color: var(--white);
+    color: white;
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 0.8em;
-    font-weight: 500;
 }
 
-.credential-footer {
+.credential-actions {
+    display: flex;
+    gap: 8px;
     margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    gap: 12px;
-    align-items: center;
 }
 
-.project-tag {
-    background-color: var(--gray);
-    color: var(--text-color);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-.status-tag {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.9em;
-    font-weight: 500;
-}
-
-.status-tag.active {
-    background-color: var(--status-active);
-    color: var(--white);
-}
-
-.status-tag.expired {
+.delete-button {
     background-color: var(--status-expired);
-    color: var(--white);
-}
-
-.status-tag.restricted {
-    background-color: var(--status-restricted);
-    color: var(--text-color);
-}
-
-/* Password Section Styles */
-.password-section {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 8px 0;
-}
-
-.toggle-password,
-.delete-credential {
+    color: white;
+    border: none;
     padding: 6px 12px;
     border-radius: 4px;
+    cursor: pointer;
     font-size: 0.9em;
     transition: background-color 0.2s;
 }
 
-.toggle-password {
-    background-color: var(--secondary-color);
+.delete-button:hover {
+    background-color: #dc3545;
 }
 
-.delete-credential {
-    background-color: var(--status-expired);
+.admin-only {
+    display: none;
 }
 
-/* Form Updates */
-.credential-form select {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid var(--maroon);
-    border-radius: 6px;
-    font-size: 16px;
-    margin-top: 8px;
-    background-color: var(--white);
+/* Show admin-only elements when in admin mode */
+body.admin-mode .admin-only {
+    display: block;
+}
+
+/* Role Selector Styles */
+.role-selector {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin: 20px auto;
+    max-width: 400px;
+}
+
+.role-button {
+    padding: 10px 24px;
+    border: 2px solid var(--role-inactive);
+    background: transparent;
+    color: var(--role-inactive);
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.role-button.active {
+    border-color: var(--role-active);
+    background: var(--role-active);
+    color: var(--white);
+}
+
+.role-button:hover:not(.active) {
+    border-color: var(--role-active);
+    color: var(--role-active);
+}
+
+/* Filter Container Styles */
+.filter-container {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.filter-container .input-field {
+    flex: 1;
+}
+
+/* Admin Indicator Styles */
+.admin-mode-indicator {
+    background-color: var(--role-active);
+    color: var(--white);
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: 500;
 }
 
 /* Responsive Design */

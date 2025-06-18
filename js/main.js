@@ -10,6 +10,17 @@ microsoftTeams.app.initialize().then(() => {
             localStorage.setItem('teamsUserEmail', context.user.userPrincipalName);
             localStorage.setItem('teamsUserName', context.user.displayName);
             localStorage.setItem('teamsUserId', context.user.id);
+
+            // Check if user is admin (you'll need to implement this logic based on your requirements)
+            const isAdmin = checkIfUserIsAdmin(context.user);
+            window.credentialManager.isAdmin = isAdmin;
+
+            // Initialize UI with role information
+            if (isAdmin) {
+                document.body.classList.add('has-admin-rights');
+                const roleSelector = document.getElementById('roleSelector');
+                if (roleSelector) roleSelector.style.display = 'flex';
+            }
         }
     }).catch(error => {
         console.error('Error getting Teams context:', error);
@@ -25,12 +36,20 @@ if (window.microsoftTeams) {
     microsoftTeams.initialize();
 }
 
+// Helper function to check if user is admin
+function checkIfUserIsAdmin(user) {
+    // Implement your admin check logic here
+    // For example, check against a list of admin emails or roles
+    const adminEmails = ['admin@globiq.com']; // Replace with your actual admin list
+    return adminEmails.includes(user.userPrincipalName);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize UI elements
     const passwordInput = document.getElementById('password');
     const saveButton = document.getElementById('saveCredential');
-    const projectSelect = document.getElementById('project');
-    const categorySelect = document.getElementById('category');
+    const projectInput = document.getElementById('project');
+    const categoryInput = document.getElementById('category');
     const statusSelect = document.getElementById('status');
     const isAdminCheckbox = document.getElementById('isAdmin');
 
@@ -48,6 +67,19 @@ document.addEventListener('DOMContentLoaded', function() {
             await handleSaveCredential();
         });
     }
+
+    // Role switching
+    document.querySelectorAll('.role-button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            const role = this.dataset.role;
+            document.querySelectorAll('.role-button').forEach(btn => 
+                btn.classList.toggle('active', btn === this));
+            document.body.classList.toggle('admin-mode', role === 'admin');
+            if (window.credentialManager) {
+                window.credentialManager.switchRole(role);
+            }
+        });
+    });
 
     // Tab switching
     document.querySelectorAll('.tab').forEach(tab => {

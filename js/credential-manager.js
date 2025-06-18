@@ -1,8 +1,10 @@
 // Global credential manager object
 window.credentialManager = {
     isInitialized: false,
+    currentRole: 'user',
     projects: new Set(['Default']),
-    currentProject: 'All',
+    categories: new Set(['General']),
+    isAdmin: false, // Will be set based on Teams context
 
     initialize() {
         if (this.isInitialized) return this;
@@ -11,17 +13,28 @@ window.credentialManager = {
         this.passwordList = document.getElementById('passwordList');
         this.searchInput = document.getElementById('searchCredentials');
         this.projectFilter = document.getElementById('projectFilter');
+        this.categoryFilter = document.getElementById('categoryFilter');
+        this.roleSelector = document.getElementById('roleSelector');
         
-        // Setup search
+        // Setup search and filters
         if (this.searchInput) {
             this.searchInput.addEventListener('input', () => this.filterCredentials());
         }
-
-        // Setup project filter
         if (this.projectFilter) {
-            this.projectFilter.addEventListener('change', (e) => {
-                this.currentProject = e.target.value;
-                this.renderCredentials();
+            this.projectFilter.addEventListener('input', () => this.filterCredentials());
+        }
+        if (this.categoryFilter) {
+            this.categoryFilter.addEventListener('input', () => this.filterCredentials());
+        }
+
+        // Setup role selector if user is admin
+        if (this.roleSelector && this.isAdmin) {
+            this.roleSelector.style.display = 'flex';
+            this.roleSelector.querySelectorAll('.role-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const role = e.target.dataset.role;
+                    this.switchRole(role);
+                });
             });
         }
         
@@ -52,12 +65,17 @@ window.credentialManager = {
                 return;
             }
 
-            // Update projects list and filter
-            this.projects = new Set(['All', ...new Set(credentials.map(cred => cred.project || 'Default'))]);
-            this.updateProjectFilter();
+            // Filter credentials based on role
+            const filteredCredentials = this.currentRole === 'admin' 
+                ? credentials 
+                : credentials.filter(cred => !cred.isAdmin);
+
+            // Update projects and categories sets
+            this.projects = new Set(['All', ...new Set(filteredCredentials.map(cred => cred.project || 'Default'))]);
+            this.categories = new Set(['All', ...new Set(filteredCredentials.map(cred => cred.category || 'General'))]);
 
             // Store credentials and render
-            this.credentials = credentials;
+            this.credentials = filteredCredentials;
             this.renderCredentials();
 
         } catch (error) {
@@ -66,22 +84,41 @@ window.credentialManager = {
         }
     },
 
-    updateProjectFilter() {
-        if (this.projectFilter) {
-            this.projectFilter.innerHTML = Array.from(this.projects)
-                .map(project => `<option value="${project}">${project}</option>`)
-                .join('');
-            this.projectFilter.value = this.currentProject;
-        }
+    switchRole(role) {
+        // Update UI
+        document.querySelectorAll('.role-button').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.role === role);
+        });
+        document.body.classList.toggle('admin-mode', role === 'admin');
+
+        // Update state and reload
+        this.currentRole = role;
+        this.loadCredentials();
     },
 
     renderCredentials() {
         if (!this.credentials || !this.passwordList) return;
 
-        // Filter credentials by project if needed
+        // Apply filters
         let displayCredentials = this.credentials;
-        if (this.currentProject !== 'All') {
-            displayCredentials = this.credentials.filter(cred => cred.project === this.currentProject);
+        const projectFilter = this.projectFilter?.value.toLowerCase();
+        const categoryFilter = this.categoryFilter?.value.toLowerCase();
+        const searchTerm = this.searchInput?.value.toLowerCase();
+
+        if (projectFilter) {
+            displayCredentials = displayCredentials.filter(cred => 
+                (cred.project || 'Default').toLowerCase().includes(projectFilter));
+        }
+
+        if (categoryFilter) {
+            displayCredentials = displayCredentials.filter(cred => 
+                (cred.category || 'General').toLowerCase().includes(categoryFilter));
+        }
+
+        if (searchTerm) {
+            displayCredentials = displayCredentials.filter(cred => 
+                cred.name.toLowerCase().includes(searchTerm) ||
+                cred.username.toLowerCase().includes(searchTerm));
         }
 
         // Group credentials by category
@@ -105,7 +142,12 @@ window.credentialManager = {
             </div>
         `).join('');
 
-        this.passwordList.innerHTML = html || '<p class="no-results">No credentials found</p>';
+        // Add admin mode indicator if in admin view
+        const adminIndicator = this.currentRole === 'admin' 
+            ? '<div class="admin-mode-indicator">Admin View Mode</div>' 
+            : '';
+
+        this.passwordList.innerHTML = adminIndicator + (html || '<p class="no-results">No credentials found</p>');
         this.addEventListeners();
     },
 
@@ -115,6 +157,8 @@ window.credentialManager = {
             expired: '🔴',
             restricted: '🟡'
         };
+
+        const canDelete = this.currentRole === 'admin' || !cred.isAdmin;
 
         return `
             <div class="credential-item ${cred.status}" data-id="${cred._id}">
@@ -132,12 +176,18 @@ window.credentialManager = {
                     <button class="toggle-password btn" data-id="${cred._id}" data-password="${this.escapeHtml(cred.password)}">
                         Show
                     </button>
-                    ${!cred.isAdmin ? `<button class="delete-credential btn" data-id="${cred._id}">Delete</button>` : ''}
                 </div>
                 <div class="credential-footer">
                     <span class="project-tag">${this.escapeHtml(cred.project || 'Default')}</span>
                     <span class="status-tag ${cred.status || 'active'}">${cred.status || 'active'}</span>
                 </div>
+                ${canDelete ? `
+                    <div class="credential-actions">
+                        <button class="delete-button" data-id="${cred._id}">
+                            Delete Credential
+                        </button>
+                    </div>
+                ` : ''}
             </div>
         `;
     },
@@ -161,19 +211,20 @@ window.credentialManager = {
         });
 
         // Delete buttons
-        this.passwordList.querySelectorAll('.delete-credential').forEach(button => {
+        this.passwordList.querySelectorAll('.delete-button').forEach(button => {
             button.addEventListener('click', async (e) => {
                 const id = e.target.dataset.id;
                 if (!id) return;
                 
-                if (confirm('Are you sure you want to delete this credential?')) {
+                if (confirm('Are you sure you want to delete this credential? This action cannot be undone.')) {
                     try {
                         await api.deleteCredential(id);
                         // Reload all credentials to ensure proper counts and filtering
                         this.loadCredentials();
+                        showMessage('Credential deleted successfully', 'success');
                     } catch (error) {
                         console.error('Error deleting credential:', error);
-                        alert('Failed to delete credential: ' + error.message);
+                        showMessage('Failed to delete credential: ' + error.message, 'error');
                     }
                 }
             });
@@ -193,23 +244,12 @@ window.credentialManager = {
     },
 
     filterCredentials() {
-        const searchTerm = this.searchInput.value.toLowerCase();
-        const items = this.passwordList.querySelectorAll('.credential-item');
-        let hasVisibleItems = false;
+        const searchTerm = this.searchInput?.value.toLowerCase() ?? '';
+        const projectFilter = this.projectFilter?.value.toLowerCase() ?? '';
+        const categoryFilter = this.categoryFilter?.value.toLowerCase() ?? '';
         
-        items.forEach(item => {
-            const name = item.querySelector('h3').textContent.toLowerCase();
-            const username = item.querySelector('p').textContent.toLowerCase();
-            const isVisible = name.includes(searchTerm) || username.includes(searchTerm);
-            item.style.display = isVisible ? '' : 'none';
-            if (isVisible) hasVisibleItems = true;
-        });
-
-        // Update category visibility based on visible items
-        this.passwordList.querySelectorAll('.category-section').forEach(section => {
-            const hasVisibleCredentials = !!section.querySelector('.credential-item[style=""]');
-            section.style.display = hasVisibleCredentials ? '' : 'none';
-        });
+        // Re-render with current filters
+        this.renderCredentials();
     },
 
     escapeHtml(unsafe) {
