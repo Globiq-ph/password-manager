@@ -28,26 +28,30 @@ function initializeApp() {
             const username = document.getElementById('adminUsername').value;
             const password = document.getElementById('adminPassword').value;
 
-            if (username === 'john doe' && password === 'password') {
-                // Store admin status
-                localStorage.setItem('isAdmin', 'true');
-                
-                // Show admin tab
-                if (adminTab) adminTab.style.display = 'block';
-                
-                // Hide login overlay
-                if (adminLoginOverlay) adminLoginOverlay.style.display = 'none';
-                
-                // Switch to admin panel
-                switchTab('adminPanel');
-                
-                showMessage('Admin login successful!', 'success');
-                
-                // Load admin data
-                loadAdminDashboard();
-            } else {
-                showMessage('Invalid admin credentials!', 'error');
+            // Enhanced admin login validation
+            const validation = validateAdminCredentials(username, password);
+            if (!validation.isValid) {
+                // Show error messages
+                validation.errors.forEach(error => showLoginError(error));
+                return;
             }
+
+            // Store admin status
+            localStorage.setItem('isAdmin', 'true');
+            
+            // Show admin tab
+            if (adminTab) adminTab.style.display = 'block';
+            
+            // Hide login overlay
+            if (adminLoginOverlay) adminLoginOverlay.style.display = 'none';
+            
+            // Switch to admin panel
+            switchTab('adminPanel');
+            
+            showMessage('Admin login successful!', 'success');
+            
+            // Load admin data
+            loadAdminDashboard();
         });
     }
 
@@ -575,6 +579,70 @@ function showMessage(message, type = 'info') {
             alertBox.style.display = 'none';
         }, 5000);
     }
+}
+
+// Password visibility toggle
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('adminPassword');
+    const toggleButton = document.querySelector('.toggle-password i');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleButton.classList.remove('fa-eye');
+        toggleButton.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleButton.classList.remove('fa-eye-slash');
+        toggleButton.classList.add('fa-eye');
+    }
+}
+
+// Enhanced admin login validation
+function validateAdminCredentials(username, password) {
+    const expectedUsername = 'john doe';
+    const expectedPassword = 'password';
+    
+    let errors = [];
+    
+    if (username.trim() === '') {
+        errors.push('Username is required');
+    }
+    
+    if (password === '') {
+        errors.push('Password is required');
+    }
+    
+    if (username !== expectedUsername || password !== expectedPassword) {
+        errors.push('Invalid credentials');
+    }
+    
+    return {
+        isValid: errors.length === 0,
+        errors: errors
+    };
+}
+
+// Show error message with animation
+function showLoginError(message) {
+    const loginForm = document.getElementById('adminLoginForm');
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'login-error';
+    errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+    errorDiv.style.animation = 'slideIn 0.3s ease';
+    
+    // Remove any existing error messages
+    const existingError = loginForm.querySelector('.login-error');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    loginForm.insertBefore(errorDiv, loginForm.firstChild);
+    
+    // Remove error message after 3 seconds
+    setTimeout(() => {
+        errorDiv.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => errorDiv.remove(), 300);
+    }, 3000);
 }
 
 // Helper function to escape HTML to prevent XSS

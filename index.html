@@ -804,11 +804,16 @@
 
     <h1 class="app-title">GlobiQ Password Manager</h1>
 
-    <!-- Tab Navigation -->
-    <div class="tabs">
-        <div class="tab active" data-tab="addCredential">Add Credential</div>
-        <div class="tab" data-tab="viewCredentials">View Credentials</div>
-        <div class="tab admin-tab" data-tab="adminPanel" style="display: none;">Admin Panel</div>
+    <!-- Tab Navigation -->    <div class="tabs">
+        <div class="tab active" onclick="switchTab('addCredential')">
+            <i class="fas fa-plus-circle"></i> Add Credential
+        </div>
+        <div class="tab" onclick="switchTab('viewCredentials')">
+            <i class="fas fa-key"></i> View Credentials
+        </div>
+        <div class="tab admin-tab" onclick="switchTab('adminPanel')" style="display: none;">
+            <i class="fas fa-shield-alt"></i> Admin Dashboard
+        </div>
     </div>
 
     <!-- Add Credential Tab -->
