@@ -265,21 +265,58 @@
         </div>
 
         <div id="addCredential" class="tab-content active">
-            <div class="add-password-form">
+            <div class="add-password-form">                
+                <div class="form-group">
+                    <label for="project">Project</label>
+                    <select id="project" class="input-field" required>
+                        <option value="Default">Select Project</option>
+                        <option value="Project1">Project 1</option>
+                        <option value="Project2">Project 2</option>
+                        <option value="Project3">Project 3</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category</label>
+                    <select id="category" class="input-field">
+                        <option value="General">General</option>
+                        <option value="Database">Database</option>
+                        <option value="API">API</option>
+                        <option value="Server">Server</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" class="input-field">
+                        <option value="active">Active</option>
+                        <option value="expired">Expired</option>
+                        <option value="restricted">Restricted</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="isAdmin"> Admin View Only (Read-only credential)
+                    </label>
+                </div>
+
                 <div class="form-group">
                     <label for="name">Name</label>
-                    <input type="text" id="name" class="input-field" placeholder="Enter credential name">
+                    <input type="text" id="name" class="input-field" placeholder="Enter credential name" required>
                 </div>
 
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" class="input-field" placeholder="Enter username">
+                    <input type="text" id="username" class="input-field" placeholder="Enter username" required>
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password</label>
                     <div class="password-input-group">
-                        <input type="password" id="password" class="input-field" placeholder="Enter password">
+                        <input type="password" id="password" class="input-field" placeholder="Enter password" required>
                         <div class="password-strength">
                             <div class="password-strength-bar"></div>
                         </div>
@@ -289,11 +326,17 @@
 
                 <button id="saveCredential" class="save-button">Save Credential</button>
             </div>
-        </div>
-
+        </div>        
         <div id="viewCredentials" class="tab-content">
-            <div class="search-container">
-                <input type="text" id="searchCredentials" class="input-field" placeholder="Search credentials...">
+            <div class="view-controls">
+                <div class="project-filter">
+                    <select id="projectFilter" class="input-field">
+                        <option value="All">All Projects</option>
+                    </select>
+                </div>
+                <div class="search-container">
+                    <input type="text" id="searchCredentials" class="input-field" placeholder="Search credentials...">
+                </div>
             </div>
             <div id="passwordList" class="credentials-grid">
                 <!-- Credentials will be populated here -->

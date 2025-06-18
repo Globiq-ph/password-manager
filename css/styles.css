@@ -10,6 +10,9 @@
     --maroon-light: #a94442;
     --maroon-bg: #f9ecec;
     --gray: #f4f4f4;
+    --status-active: #28a745;
+    --status-expired: #dc3545;
+    --status-restricted: #ffc107;
 }
 
 * {
@@ -431,6 +434,197 @@ button:hover {
 
 .error {
     color: #dc3545;
+}
+
+/* Project and Category Styles */
+.project-filter {
+    width: 200px;
+    padding: 8px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--white);
+}
+
+.category-section {
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: var(--gray);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.category-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+    color: var(--text-color);
+}
+
+.credential-count {
+    color: var(--secondary-color);
+    font-size: 0.9em;
+    font-weight: normal;
+}
+
+.toggle-category {
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.toggle-category:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+.category-content {
+    padding: 16px;
+    background-color: var(--white);
+}
+
+/* Credential Item Styles */
+.credential-item {
+    background: var(--white);
+    padding: 16px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid var(--status-active);
+}
+
+.credential-item.expired {
+    border-left-color: var(--status-expired);
+}
+
+.credential-item.restricted {
+    border-left-color: var(--status-restricted);
+}
+
+.credential-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.credential-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-badge {
+    background-color: var(--secondary-color);
+    color: var(--white);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.credential-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.project-tag {
+    background-color: var(--gray);
+    color: var(--text-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.status-tag {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.status-tag.active {
+    background-color: var(--status-active);
+    color: var(--white);
+}
+
+.status-tag.expired {
+    background-color: var(--status-expired);
+    color: var(--white);
+}
+
+.status-tag.restricted {
+    background-color: var(--status-restricted);
+    color: var(--text-color);
+}
+
+/* Password Section Styles */
+.password-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+}
+
+.toggle-password,
+.delete-credential {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+
+.toggle-password {
+    background-color: var(--secondary-color);
+}
+
+.delete-credential {
+    background-color: var(--status-expired);
+}
+
+/* Form Updates */
+.credential-form select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--maroon);
+    border-radius: 6px;
+    font-size: 16px;
+    margin-top: 8px;
+    background-color: var(--white);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .credential-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .password-section {
+        flex-wrap: wrap;
+    }
+
+    .credential-footer {
+        flex-wrap: wrap;
+    }
 }
 
 @media (max-width: 600px) {

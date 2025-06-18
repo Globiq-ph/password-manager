@@ -23,6 +23,24 @@ const credentialSchema = new mongoose.Schema({
             required: true
         }
     },
+    project: {
+        type: String,
+        required: true,
+        default: 'Default'
+    },
+    status: {
+        type: String,
+        enum: ['active', 'expired', 'restricted'],
+        default: 'active'
+    },
+    isAdmin: {
+        type: Boolean,
+        default: false
+    },
+    category: {
+        type: String,
+        default: 'General'
+    },
     createdAt: {
         type: Date,
         default: Date.now

@@ -41,7 +41,7 @@ router.get('/', async (req, res) => {
 // Add new credential
 router.post('/', async (req, res) => {
     try {
-        const { name, username, password } = req.body;
+        const { name, username, password, project, category, status, isAdmin } = req.body;
         
         if (!name || !username || !password) {
             return res.status(400).json({ message: 'Missing required fields' });
@@ -50,7 +50,7 @@ router.post('/', async (req, res) => {
         // Encrypt the password
         const encryptedPassword = encrypt(password);
         
-        // Create the credential with encrypted password matching schema structure
+        // Create the credential with encrypted password and new fields
         const credential = new Credential({
             name,
             username,
@@ -58,7 +58,11 @@ router.post('/', async (req, res) => {
                 encryptedData: encryptedPassword.encryptedData,
                 iv: encryptedPassword.iv,
                 tag: encryptedPassword.tag
-            }
+            },
+            project: project || 'Default',
+            category: category || 'General',
+            status: status || 'active',
+            isAdmin: isAdmin || false
         });
 
         const savedCredential = await credential.save();
@@ -72,6 +76,63 @@ router.post('/', async (req, res) => {
     } catch (error) {
         console.error('Error saving credential:', error);
         res.status(500).json({ message: 'Error saving credential', error: error.message });
+    }
+});
+
+// Update credential
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = { ...req.body };
+        console.log(`PUT /credentials/${id} - Updating credential`);
+
+        if (!id) {
+            return res.status(400).json({ message: 'Credential ID is required' });
+        }
+
+        const credential = await Credential.findById(id);
+        if (!credential) {
+            return res.status(404).json({ message: 'Credential not found' });
+        }
+
+        // If password is being updated, encrypt it
+        if (updateData.password && typeof updateData.password === 'string') {
+            const encryptedPassword = encrypt(updateData.password);
+            updateData.password = {
+                encryptedData: encryptedPassword.encryptedData,
+                iv: encryptedPassword.iv,
+                tag: encryptedPassword.tag
+            };
+        }
+
+        // Update the credential
+        const updatedCredential = await Credential.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { new: true }
+        );
+
+        // Return decrypted version
+        const returnCred = updatedCredential.toObject();
+        if (updateData.password && typeof req.body.password === 'string') {
+            returnCred.password = req.body.password; // Send back original password if it was updated
+        } else {
+            try {
+                returnCred.password = decrypt({
+                    encryptedData: returnCred.password.encryptedData,
+                    iv: returnCred.password.iv,
+                    tag: returnCred.password.tag
+                });
+            } catch (error) {
+                console.error('Error decrypting password:', error);
+                returnCred.password = '********';
+            }
+        }
+
+        res.json(returnCred);
+    } catch (error) {
+        console.error('Error in PUT /credentials/:id:', error);
+        res.status(500).json({ message: 'Error updating credential', error: error.message });
     }
 });
 

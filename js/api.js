@@ -38,12 +38,21 @@ const api = {
     async addCredential(data) {
         try {
             console.log('Adding credential...');
+            // Ensure default values for new fields
+            const credentialData = {
+                project: 'Default',
+                category: 'General',
+                status: 'active',
+                isAdmin: false,
+                ...data
+            };
+
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(credentialData)
             });
 
             if (!response.ok) {
@@ -53,6 +62,28 @@ const api = {
             return await response.json();
         } catch (error) {
             console.error('Error in addCredential:', error);
+            throw error;
+        }
+    },
+
+    async updateCredential(id, data) {
+        try {
+            console.log('Updating credential:', id);
+            const response = await fetch(`${API_BASE_URL}/credentials/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to update credential: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error in updateCredential:', error);
             throw error;
         }
     }

@@ -29,6 +29,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize UI elements
     const passwordInput = document.getElementById('password');
     const saveButton = document.getElementById('saveCredential');
+    const projectSelect = document.getElementById('project');
+    const categorySelect = document.getElementById('category');
+    const statusSelect = document.getElementById('status');
+    const isAdminCheckbox = document.getElementById('isAdmin');
 
     // Password strength meter
     if (passwordInput) {
@@ -133,26 +137,42 @@ async function handleSaveCredential() {
     const nameInput = document.getElementById('name');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
+    const projectSelect = document.getElementById('project');
+    const categorySelect = document.getElementById('category');
+    const statusSelect = document.getElementById('status');
+    const isAdminCheckbox = document.getElementById('isAdmin');
     const saveButton = document.getElementById('saveCredential');
 
     try {
         if (saveButton) saveButton.disabled = true;
 
         // Validate inputs
-        if (!nameInput || !usernameInput || !passwordInput) {
+        if (!nameInput || !usernameInput || !passwordInput || !projectSelect || !categorySelect || !statusSelect) {
             throw new Error('Required form elements not found');
         }
 
         const name = nameInput.value.trim();
         const username = usernameInput.value.trim();
         const password = passwordInput.value;
+        const project = projectSelect.value;
+        const category = categorySelect.value;
+        const status = statusSelect.value;
+        const isAdmin = isAdminCheckbox ? isAdminCheckbox.checked : false;
 
         if (!name || !username || !password) {
-            throw new Error('Please fill in all fields');
+            throw new Error('Please fill in all required fields');
         }
 
-        // Save credential
-        await api.addCredential({ name, username, password });
+        // Save credential with all fields
+        await api.addCredential({
+            name,
+            username,
+            password,
+            project,
+            category,
+            status,
+            isAdmin
+        });
         
         // Show success message
         showMessage('Credential saved successfully!', 'success');
@@ -161,6 +181,10 @@ async function handleSaveCredential() {
         nameInput.value = '';
         usernameInput.value = '';
         passwordInput.value = '';
+        projectSelect.value = 'Default';
+        categorySelect.value = 'General';
+        statusSelect.value = 'active';
+        if (isAdminCheckbox) isAdminCheckbox.checked = false;
         updatePasswordStrength('');
         
         // Switch to view tab
@@ -169,58 +193,30 @@ async function handleSaveCredential() {
     } catch (error) {
         console.error('Error saving credential:', error);
         showMessage(error.message, 'error');
+    } finally {
+        if (saveButton) saveButton.disabled = false;
     }
 }
 
-async function loadCredentialsList() {
-    const listElement = document.getElementById('passwordList');
-    if (!listElement) return;
-
-    try {
-        listElement.innerHTML = '<p class="loading">Loading credentials...</p>';
-        
-        const credentials = await api.getCredentials();
-        
-        if (!credentials || credentials.length === 0) {
-            listElement.innerHTML = '<p class="no-results">No credentials found</p>';
-            return;
-        }
-
-        // Render credentials
-        listElement.innerHTML = credentials.map(cred => `
-            <div class="credential-item">
-                <div class="credential-content">
-                    <h3>${escapeHtml(cred.name)}</h3>
-                    <p><strong>Username:</strong> ${escapeHtml(cred.username)}</p>
-                    <p>
-                        <strong>Password:</strong> 
-                        <span class="password-hidden" id="pwd-${escapeHtml(cred._id)}">********</span>
-                        <button class="btn btn-show" onclick="togglePassword('${escapeHtml(cred._id)}')">
-                            Show/Hide
-                        </button>
-                    </p>
-                </div>
-                <div class="credential-actions">
-                    <button class="btn btn-delete" onclick="deleteCredential('${escapeHtml(cred._id)}')">
-                        Delete
-                    </button>
-                </div>
-            </div>
-        `).join('');
-
-    } catch (error) {
-        console.error('Error loading credentials:', error);
-        listElement.innerHTML = `<p class="error">Error loading credentials: ${error.message}</p>`;
-    }
-}
-
-function showMessage(message, type = 'info') {
+function showMessage(message, type) {
     const alertBox = document.querySelector('.alert');
     if (alertBox) {
-        alertBox.textContent = message;
-        alertBox.className = `alert alert-${type}`;
-        alertBox.style.display = 'block';
-        
+        alertBox.className = `alert ${type}`;
+        alertBox.innerHTML = `
+            ${message}
+            <button class="close-btn">&times;</button>
+        `;
+        alertBox.style.display = 'flex';
+
+        // Add click handler for close button
+        const closeBtn = alertBox.querySelector('.close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                alertBox.style.display = 'none';
+            });
+        }
+
+        // Auto-hide after 5 seconds
         setTimeout(() => {
             alertBox.style.display = 'none';
         }, 5000);
@@ -228,8 +224,7 @@ function showMessage(message, type = 'info') {
 }
 
 function escapeHtml(unsafe) {
-    if (!unsafe) return '';
-    return unsafe.toString()
+    return unsafe
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
