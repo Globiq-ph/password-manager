@@ -46,14 +46,14 @@ app.use((req, res, next) => {
     next();
 });
 
-// Enable CORS for all routes
-app.use(cors());
+// CORS Configuration
+const corsOptions = {
     origin: [
         'https://password-manager-p49n.onrender.com',
         'http://localhost:3000',
         'http://localhost:5000'
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: [
         'Content-Type',
         'Accept',
@@ -63,34 +63,26 @@ app.use(cors());
         'X-User-Email',
         'User-Context'
     ],
-    exposedHeaders: ['Content-Length', 'X-Content-Type'],
     credentials: true,
     maxAge: 86400 // 24 hours
 };
 
 app.use(cors(corsOptions));
 
-// Request logging middleware
-app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
-    console.log('Headers:', req.headers);
-    next();
-    
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    next();
-});
-
-// Basic security headers
+// Basic security headers with relaxed CSP for development
 app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
+// Handle OPTIONS requests
+app.options('*', cors(corsOptions));
+
 // Connect to database
-connectDB().catch(err => {
+connectDB().then(() => {
+    console.log('Connected to MongoDB successfully');
+}).catch(err => {
     console.error('Failed to connect to MongoDB:', err);
 });
 
