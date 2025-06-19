@@ -1,13 +1,20 @@
-// Teams SDK initialization
-microsoftTeams.app.initialize().then(() => {
-    console.log('Microsoft Teams SDK initialized');
-    initializeApp();
-}).catch(error => {
-    console.error('Error initializing Teams SDK:', error);
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded, initializing app...');
     initializeApp();
 });
 
+// Teams SDK initialization (if available)
+if (typeof microsoftTeams !== 'undefined') {
+    microsoftTeams.app.initialize().then(() => {
+        console.log('Microsoft Teams SDK initialized');
+    }).catch(error => {
+        console.error('Error initializing Teams SDK:', error);
+    });
+}
+
 function verifyUserContext() {
+    console.log('Verifying user context...');
     const userId = localStorage.getItem('teamsUserId');
     const userName = localStorage.getItem('teamsUserName');
     const userEmail = localStorage.getItem('teamsUserEmail');
@@ -16,10 +23,11 @@ function verifyUserContext() {
     
     // Verify all user context values exist
     if (!userId || !userName || !userEmail) {
-        console.warn('Missing user context, resetting to defaults');
+        console.log('Setting default user context');
         localStorage.setItem('teamsUserId', 'dev-user');
-        localStorage.setItem('teamsUserName', 'Developer');
+        localStorage.setItem('teamsUserName', 'john doe');
         localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
+        localStorage.setItem('isAdmin', 'true');
     }
     
     // Verify we can read the values back

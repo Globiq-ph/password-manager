@@ -1,15 +1,21 @@
-const API_BASE_URL = 'https://password-manager-wab6.onrender.com/api';
+const API_BASE_URL = 'https://password-manager-p49n.onrender.com/api';
 
 const api = {
     // Helper to ensure user context exists
     ensureUserContext() {
+        console.log('Ensuring user context...');
         if (!localStorage.getItem('teamsUserId') || !localStorage.getItem('teamsUserName') || !localStorage.getItem('teamsUserEmail')) {
-            console.log('Setting default user context from API');
+            console.log('Setting default user context');
             localStorage.setItem('teamsUserId', 'dev-user');
             localStorage.setItem('teamsUserName', 'john doe');
             localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
             localStorage.setItem('isAdmin', 'true');
         }
+        console.log('User context:', {
+            userId: localStorage.getItem('teamsUserId'),
+            userName: localStorage.getItem('teamsUserName'),
+            userEmail: localStorage.getItem('teamsUserEmail')
+        });
     },
 
     // Helper to get auth headers with fallback values

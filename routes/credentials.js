@@ -18,10 +18,22 @@ const authenticate = (req, res, next) => {
 };
 
 // Get all credentials
-router.get('/', authenticate, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        console.log('User requesting credentials:', req.user);
+        const userId = req.headers['x-user-id'] || req.headers['user-context'];
+        const userName = req.headers['x-user-name'];
+        const userEmail = req.headers['x-user-email'];
+
+        console.log('Request headers:', req.headers);
+        console.log('User context:', { userId, userName, userEmail });
+
+        if (!userId || !userName || !userEmail) {
+            console.log('Missing authentication headers');
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+
         const credentials = await Credential.find().sort({ createdAt: -1 });
+        console.log(`Found ${credentials.length} credentials`);
         res.json(credentials);
     } catch (error) {
         console.error('Error fetching credentials:', error);

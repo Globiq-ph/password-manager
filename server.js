@@ -48,7 +48,7 @@ app.use((req, res, next) => {
 
 // CORS configuration
 const corsOptions = {
-    origin: ['https://password-manager-wab6.onrender.com', 'http://localhost:3000'],
+    origin: ['https://password-manager-p49n.onrender.com', 'http://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
         'Content-Type',
