@@ -25,17 +25,15 @@ class API {
             userName: localStorage.getItem('userName'),
             userEmail: localStorage.getItem('userEmail')
         });
-    }
-
-    static getHeaders() {
+    }    static getHeaders() {
         this.ensureUserContext();
         
         return {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-User-Id': localStorage.getItem('teamsUserId'),
-            'X-User-Name': localStorage.getItem('teamsUserName'),
-            'X-User-Email': localStorage.getItem('teamsUserEmail')
+            'X-User-Id': localStorage.getItem('userId'),
+            'X-User-Name': localStorage.getItem('userName'),
+            'X-User-Email': localStorage.getItem('userEmail')
         };
     }
 
