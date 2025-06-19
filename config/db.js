@@ -6,11 +6,19 @@ const connectDB = async () => {
             throw new Error('MONGODB_URI is not defined in environment variables');
         }
 
+        // Log the connection attempt in production
+        if (process.env.NODE_ENV === 'production') {
+            console.log('Attempting to connect to MongoDB...');
+        }
+
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+            serverSelectionTimeoutMS: 10000, // Increased timeout for production
             socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+            maxPoolSize: 10, // Limit connection pool for better stability
+            retryWrites: true,
+            w: 'majority' // Ensure writes are acknowledged by majority
         });
         
         console.log(`MongoDB Connected: ${conn.connection.host}`);
