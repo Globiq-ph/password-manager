@@ -2,10 +2,10 @@
   "name": "globiq-password-manager",
   "version": "1.0.0",
   "description": "Secure Password Manager for Teams",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "test": "jest",
     "lint": "eslint .",
     "package": "node scripts/package.js"

@@ -7,7 +7,11 @@ const connectDB = async () => {
         }
 
         console.log('Connecting to MongoDB...');
-        mongoose.set('debug', true); // Enable debugging
+        
+        // Enable mongoose debugging in development
+        if (process.env.NODE_ENV !== 'production') {
+            mongoose.set('debug', true);
+        }
 
         // Configure mongoose
         mongoose.set('strictQuery', false);
@@ -24,8 +28,10 @@ const connectDB = async () => {
             retryWrites: true,
             w: 'majority',
             maxPoolSize: 10,
-            connectTimeoutMS: 5000,
+            connectTimeoutMS: 10000,
             socketTimeoutMS: 45000,
+            keepAlive: true,
+            keepAliveInitialDelay: 300000
         };
 
         const conn = await mongoose.connect(process.env.MONGODB_URI, options);
