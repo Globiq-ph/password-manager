@@ -1,4 +1,4 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://password-manager-wab6.onrender.com/api';
 
 const api = {
     // Helper to ensure user context exists
@@ -6,9 +6,9 @@ const api = {
         if (!localStorage.getItem('teamsUserId') || !localStorage.getItem('teamsUserName') || !localStorage.getItem('teamsUserEmail')) {
             console.log('Setting default user context from API');
             localStorage.setItem('teamsUserId', 'dev-user');
-            localStorage.setItem('teamsUserName', 'Developer');
+            localStorage.setItem('teamsUserName', 'john doe');
             localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
-            localStorage.setItem('isAdmin', 'true'); // Set admin status for development
+            localStorage.setItem('isAdmin', 'true');
         }
     },
 

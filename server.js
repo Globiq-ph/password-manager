@@ -46,20 +46,28 @@ app.use((req, res, next) => {
     next();
 });
 
-// CORS configuration - more permissive for debugging
-app.use(cors({
-    origin: '*',
+// CORS configuration
+const corsOptions = {
+    origin: ['https://password-manager-wab6.onrender.com', 'http://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-User-Name', 'X-User-Email'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-User-Id',
+        'X-User-Name',
+        'X-User-Email',
+        'User-Context'
+    ],
     credentials: true
-}));
+};
 
-// Additional CORS headers for problematic clients
+app.use(cors(corsOptions));
+
+// Request logging middleware
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-User-Id, X-User-Name, X-User-Email');
-    res.header('Access-Control-Allow-Credentials', 'true');
+    console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+    console.log('Headers:', req.headers);
+    next();
     
     if (req.method === 'OPTIONS') {
         return res.status(200).end();

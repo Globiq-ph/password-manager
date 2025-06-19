@@ -4,6 +4,8 @@ window.credentialManager = {
     isLoading: false,
 
     initialize() {
+        console.log('Initializing credential manager...');
+        
         // Ensure user context exists
         api.ensureUserContext();
         

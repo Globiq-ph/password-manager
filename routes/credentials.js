@@ -3,31 +3,34 @@ const router = express.Router();
 const Credential = require('../models/credential');
 const { encrypt, decrypt } = require('../utils/encryption');
 
-// Admin middleware
-const isAdmin = (req, res, next) => {
+// User authentication middleware
+const authenticate = (req, res, next) => {
     const userId = req.headers['x-user-id'] || req.headers['user-context'];
     const userName = req.headers['x-user-name'];
-    // In a real application, you would verify against a database
-    if (userId === 'dev-user' && userName === 'john doe') {
-        next();
-    } else {
-        res.status(403).json({ error: 'Unauthorized' });
+    const userEmail = req.headers['x-user-email'];
+
+    if (!userId || !userName || !userEmail) {
+        return res.status(401).json({ error: 'Authentication required' });
     }
+
+    req.user = { userId, userName, userEmail };
+    next();
 };
 
-// Get all credentials (admin only)
-router.get('/', isAdmin, async (req, res) => {
+// Get all credentials
+router.get('/', authenticate, async (req, res) => {
     try {
+        console.log('User requesting credentials:', req.user);
         const credentials = await Credential.find().sort({ createdAt: -1 });
         res.json(credentials);
     } catch (error) {
-        console.error('Error fetching all credentials:', error);
+        console.error('Error fetching credentials:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 // Get user's credentials
-router.get('/user', async (req, res) => {
+router.get('/user', authenticate, async (req, res) => {
     try {
         const userId = req.headers['user-context'];
         if (!userId) {
