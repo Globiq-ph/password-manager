@@ -1,6 +1,6 @@
 class Api {
     constructor() {
-        this.baseUrl = '/api';  // Use relative URL to automatically handle all environments
+        this.baseUrl = '/api';
         this.setHeaders();
     }
 
@@ -22,9 +22,29 @@ class Api {
         };
     }
 
+    async saveCredential(credentialData) {
+        try {
+            const response = await fetch(`${this.baseUrl}/credentials`, {
+                method: 'POST',
+                headers: this.headers,
+                body: JSON.stringify(credentialData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to save credential');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error saving credential:', error);
+            throw error;
+        }
+    }
+
     static ensureUserContext() {
         console.log('Ensuring user context...');
-          // Check for existing user context
+        // Check for existing user context
         const userId = localStorage.getItem('userId');
         const userName = localStorage.getItem('userName');
         const userEmail = localStorage.getItem('userEmail');
@@ -37,13 +57,6 @@ class Api {
             localStorage.setItem('userEmail', 'dev@globiq.com');
             localStorage.setItem('isAdmin', 'true');
         }
-        
-        // Verify user context was set
-        const verifyUserId = localStorage.getItem('userId');
-        console.log('Current user context:', {            userId: verifyUserId,
-            userName: localStorage.getItem('userName'),
-            userEmail: localStorage.getItem('userEmail')
-        });
     }
 
     async request(endpoint, options = {}) {
@@ -64,28 +77,21 @@ class Api {
 
             return await response.json();
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('API request failed:', error);
             throw error;
         }
     }
 
-    // Credential endpoints
-    async getCredentials() {
-        return this.request('/credentials');
-    }
-
-    async createCredential(data) {
+    // Credential management
+    async saveCredential(credential) {
         return this.request('/credentials', {
             method: 'POST',
-            body: JSON.stringify(data)
+            body: JSON.stringify(credential)
         });
     }
 
-    async updateCredential(id, data) {
-        return this.request(`/credentials/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data)
-        });
+    async getCredentials() {
+        return this.request('/credentials');
     }
 
     async deleteCredential(id) {
@@ -94,37 +100,23 @@ class Api {
         });
     }
 
-    async shareCredential(id, email) {
-        return this.request(`/credentials/${id}/share`, {
-            method: 'POST',
-            body: JSON.stringify({ shareWith: email })
-        });
+    // Admin operations
+    async isAdmin() {
+        try {
+            const response = await this.request('/admin/check');
+            return response.isAdmin;
+        } catch (error) {
+            console.error('Admin check failed:', error);
+            return false;
+        }
     }
 
-    // Admin endpoints
-    async getAdminStatus() {
-        return this.request('/admin/status');
-    }
-
-    async getActivityLogs() {
-        return this.request('/admin/activity-logs');
-    }
-
-    async getAdminUsers() {
+    async getUsers() {
         return this.request('/admin/users');
     }
 
-    async updateAdminUser(userId, data) {
-        return this.request(`/admin/users/${userId}`, {
-            method: 'PUT',
-            body: JSON.stringify(data)
-        });
-    }
-
-    async adminLogout() {
-        return this.request('/admin/logout', {
-            method: 'POST'
-        });
+    async getSystemStats() {
+        return this.request('/admin/stats');
     }
 }
 

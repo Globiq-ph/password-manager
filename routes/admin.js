@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const Credential = require('../models/credential');
 
 // Define Admin Schema if not already defined elsewhere
 const adminSchema = new mongoose.Schema({
@@ -47,10 +48,25 @@ const activityLogSchema = new mongoose.Schema({
 const Admin = mongoose.model('Admin', adminSchema);
 const ActivityLog = mongoose.model('ActivityLog', activityLogSchema);
 
-// Import the Credential model
-const Credential = mongoose.model('Credential');
+// Middleware to check if user is admin
+const isAdmin = async (req, res, next) => {
+    try {
+        const userId = req.header('X-User-Id');
+        const admin = await Admin.findOne({ userId });
+        
+        if (!admin || !admin.isActive) {
+            return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+        }
+        
+        req.admin = admin;
+        next();
+    } catch (error) {
+        console.error('Admin check error:', error);
+        res.status(500).json({ error: 'Error checking admin status' });
+    }
+};
 
-// Middleware to check admin authentication
+// Middleware to check admin status
 const adminAuthMiddleware = async (req, res, next) => {
     try {
         const userId = req.header('X-User-Id');
@@ -90,6 +106,13 @@ const logActivity = async (userId, action, details) => {
         console.error('Error logging activity:', error);
     }
 };
+
+// Route to check admin status
+router.get('/check', (req, res) => {
+    const userEmail = req.header('X-User-Email');
+    const adminEmails = ['dev@globiq.com', 'admin@globiq.com'];
+    res.json({ isAdmin: adminEmails.includes(userEmail) });
+});
 
 // Get admin status
 router.get('/status', async (req, res) => {
@@ -253,6 +276,47 @@ router.delete('/:userId', adminAuthMiddleware, async (req, res) => {
         res.json({ message: 'Admin removed successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// Get system stats
+router.get('/stats', isAdmin, async (req, res) => {
+    try {
+        const totalCredentials = await Credential.countDocuments();
+        const credentialsByProject = await Credential.aggregate([
+            { $group: { _id: "$project", count: { $sum: 1 } } }
+        ]);
+        const credentialsByCategory = await Credential.aggregate([
+            { $group: { _id: "$category", count: { $sum: 1 } } }
+        ]);
+
+        res.json({
+            totalCredentials,
+            credentialsByProject,
+            credentialsByCategory
+        });
+    } catch (error) {
+        console.error('Error getting stats:', error);
+        res.status(500).json({ error: 'Error retrieving system stats' });
+    }
+});
+
+// Get users with credential counts
+router.get('/users', isAdmin, async (req, res) => {
+    try {
+        const users = await Credential.aggregate([
+            { $group: { 
+                _id: "$userId",
+                credentialCount: { $sum: 1 },
+                projects: { $addToSet: "$project" },
+                categories: { $addToSet: "$category" }
+            }}
+        ]);
+        
+        res.json(users);
+    } catch (error) {
+        console.error('Error getting users:', error);
+        res.status(500).json({ error: 'Error retrieving user information' });
     }
 });
 

@@ -11,6 +11,9 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+// Connect to MongoDB
+connectDB();
+
 // Middleware setup
 app.use(cors());
 app.use(helmet({
@@ -21,188 +24,46 @@ app.use(helmet({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// API routes with proper error handling
+app.use('/api/credentials', credentialsRoutes);
+app.use('/api/admin', adminRoutes);
+
 // Serve static files - ensure absolute paths
 app.use(express.static(path.join(__dirname)));
 
-// Serve the HTML file for all routes except /api
-app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
-        return next();
-    }
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// API routes with error handling
-app.use('/api/credentials', (req, res, next) => {
-    console.log(`${req.method} ${req.url}`, { 
-        headers: req.headers,
-        body: req.body,
-        query: req.query
-    });
-    next();
-}, credentialsRoutes);
-
-app.use('/api/admin', (req, res, next) => {
-    console.log(`${req.method} ${req.url}`, { 
-        headers: req.headers,
-        body: req.body,
-        query: req.query
-    });
-    next();
-}, adminRoutes);
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', environment: process.env.NODE_ENV });
+    res.json({ status: 'OK' });
 });
 
-// Serve index.html for all other routes
+// Error handling for API routes
+app.use('/api', (err, req, res, next) => {
+    console.error('API Error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// Serve the HTML file for all non-API routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Trust proxy
-app.set('trust proxy', 1);
-
-// Request logging middleware - AFTER body parsing
-app.use((req, res, next) => {
-    const timestamp = new Date().toISOString();
-    console.log(`${timestamp} ${req.method} ${req.url}`);
-    
-    // Log headers
-    console.log('Headers:', {
-        'content-type': req.headers['content-type'],
-        'x-user-id': req.headers['x-user-id'],
-        'x-user-name': req.headers['x-user-name'],
-        'x-user-email': req.headers['x-user-email']
-    });
-
-    // Safely log request body for POST/PUT requests
-    if (['POST', 'PUT'].includes(req.method) && req.body) {
-        const sanitizedBody = { ...req.body };
-        if (sanitizedBody.password) {
-            sanitizedBody.password = '********';
-        }
-        console.log('Request body:', sanitizedBody);
-    }
-
-    next();
-});
-
-// CORS Configuration
-const corsOptions = {
-    origin: [
-        'https://password-manager-p49n.onrender.com',
-        'http://localhost:3000',
-        'http://localhost:5000'
-    ],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: [
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'X-User-Id',
-        'X-User-Name',
-        'X-User-Email',
-        'User-Context'
-    ],
-    credentials: true,
-    maxAge: 86400 // 24 hours
-};
-
-app.use(cors(corsOptions));
-
-// Basic security headers with relaxed CSP for development
-app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
-
-// Handle OPTIONS requests
-app.options('*', cors(corsOptions));
-
-// Connect to database
-connectDB().then(() => {
-    console.log('Connected to MongoDB successfully');
-}).catch(err => {
-    console.error('Failed to connect to MongoDB:', err);
-});
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.status(200).json({ status: 'ok' });
-});
-
-// Routes
+// API routes with error handling
 app.use('/api/credentials', credentialsRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Serve index.html for root path
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Serve admin.html for /admin path
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
-
 // Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-    console.error('Global error handler:', err);
-    res.status(err.status || 500).json({
-        message: err.message || 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err : {},
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'healthy' });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    
-    if (err.name === 'ValidationError') {
-        return res.status(400).json({
-            error: 'Validation Error',
-            details: err.message
-        });
-    }
-    
-    if (err.name === 'MongoError' || err.name === 'MongoServerError') {
-        return res.status(503).json({
-            error: 'Database Error',
-            details: 'A database error occurred'
-        });
-    }
-    
-    res.status(500).json({
-        error: 'Internal Server Error',
-        details: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
-    });
-});
-
-// Handle 404s
-app.use((req, res) => {
-    res.status(404).json({ message: 'Route not found' });
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something broke!' });
 });
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
-    try {
-        await connectDB();
-        console.log(`Server running on port ${PORT}`);
-    } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
-    }
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });

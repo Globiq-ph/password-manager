@@ -1,9 +1,26 @@
 class CredentialManager {
     constructor() {
+        this.api = new Api();
         this.initializeEventListeners();
         this.loadCredentials();
         this.categories = new Set();
         this.projects = new Set();
+        this.setupAdminFeatures();
+    }
+
+    async setupAdminFeatures() {
+        try {
+            const isAdmin = await this.api.isAdmin();
+            const adminTab = document.getElementById('adminTab');
+            if (adminTab) {
+                adminTab.style.display = isAdmin ? 'block' : 'none';
+            }
+            if (isAdmin) {
+                this.loadAdminDashboard();
+            }
+        } catch (error) {
+            console.error('Error setting up admin features:', error);
+        }
     }
 
     initializeEventListeners() {
@@ -25,40 +42,138 @@ class CredentialManager {
         }
 
         // Search functionality
-        document.getElementById('searchCredentials')?.addEventListener('input', (e) => {
-            this.filterCredentials(e.target.value);
-        });
+        const searchInput = document.getElementById('searchCredentials');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.filterCredentials(e.target.value);
+            });
+        }
+    }
 
-        // Category filter
-        document.getElementById('categoryFilter')?.addEventListener('change', (e) => {
-            this.filterByCategory(e.target.value);
-        });
+    async loadCredentials() {
+        try {
+            const credentials = await this.api.getCredentials();
+            this.displayCredentials(credentials);
+        } catch (error) {
+            console.error('Error loading credentials:', error);
+            this.showError('Failed to load credentials');
+        }
+    }
 
-        // Project filter
-        document.getElementById('projectFilter')?.addEventListener('change', (e) => {
-            this.filterByProject(e.target.value);
-        });
+    displayCredentials(credentials) {
+        const container = document.getElementById('credentialsContainer');
+        if (!container) return;
 
-        // Clipboard copy
-        document.addEventListener('click', (e) => {
+        if (!credentials || credentials.length === 0) {
+            container.innerHTML = '<p class="no-credentials">No credentials found</p>';
+            return;
+        }
+
+        const table = document.createElement('table');
+        table.className = 'credentials-table';
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>Project</th>
+                    <th>Category</th>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${credentials.map(cred => `
+                    <tr>
+                        <td>${this.escapeHtml(cred.project)}</td>
+                        <td>${this.escapeHtml(cred.category)}</td>
+                        <td>${this.escapeHtml(cred.name)}</td>
+                        <td>${this.escapeHtml(cred.username)}</td>
+                        <td>
+                            <button class="copy-btn" data-value="${this.escapeHtml(cred.username)}">Copy Username</button>
+                            <button class="copy-btn" data-value="${this.escapeHtml(cred.password)}">Copy Password</button>
+                            <button class="delete-btn" data-id="${cred._id}">Delete</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        `;
+
+        // Add event listeners for copy and delete buttons
+        table.addEventListener('click', async (e) => {
             if (e.target.classList.contains('copy-btn')) {
-                this.copyToClipboard(e.target.dataset.value);
+                await this.copyToClipboard(e.target.dataset.value);
+            } else if (e.target.classList.contains('delete-btn')) {
+                await this.deleteCredential(e.target.dataset.id);
             }
         });
 
-        // Delete credential
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('delete-credential')) {
-                this.deleteCredential(e.target.dataset.id);
-            }
-        });
+        container.innerHTML = '';
+        container.appendChild(table);
+    }    async saveCredential() {
+        try {
+            const formData = {
+                project: document.getElementById('project').value,
+                category: document.getElementById('category').value,
+                name: document.getElementById('name').value,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                notes: document.getElementById('notes').value || ''
+            };
 
-        // Share credential
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('share-credential')) {
-                this.showShareDialog(e.target.dataset.id);
+            // Validate required fields
+            if (!formData.project || !formData.category || !formData.name || !formData.username || !formData.password) {
+                throw new Error('Please fill in all required fields');
             }
-        });
+
+            const result = await window.api.saveCredential(formData);
+
+            await this.api.saveCredential(formData);
+            document.getElementById('credentialForm').reset();
+            await this.loadCredentials();
+            this.showSuccess('Credential saved successfully');
+        } catch (error) {
+            console.error('Error saving credential:', error);
+            this.showError(error.message || 'Failed to save credential');
+        }
+    }
+
+    // Helper methods
+    escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    showError(message) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-error';
+        alert.textContent = message;
+        this.showAlert(alert);
+    }
+
+    showSuccess(message) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success';
+        alert.textContent = message;
+        this.showAlert(alert);
+    }
+
+    showAlert(alertElement) {
+        const container = document.querySelector('.alert-container') || document.body;
+        container.appendChild(alertElement);
+        setTimeout(() => alertElement.remove(), 3000);
+    }
+
+    async copyToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            this.showSuccess('Copied to clipboard');
+        } catch (error) {
+            this.showError('Failed to copy to clipboard');
+        }
     }
 
     checkPasswordStrength(password) {
@@ -112,191 +227,7 @@ class CredentialManager {
         if (feedback.length > 0) {
             strengthIndicator.title = `Add ${feedback.join(', ')}`;
         }
-    }    async loadCredentials() {
-        try {
-            const credentials = await window.api.getCredentials();
-            this.categories = new Set(credentials.map(c => c.category));
-            this.projects = new Set(credentials.map(c => c.project));
-            
-            this.updateFilters();
-            this.displayCredentials(credentials);
-        } catch (error) {
-            console.error('Error loading credentials:', error);
-            this.showError('Failed to load credentials');
-        }
-    }
-
-    updateFilters() {
-        const categoryFilter = document.getElementById('categoryFilter');
-        const projectFilter = document.getElementById('projectFilter');
-        
-        // Update category filter
-        categoryFilter.innerHTML = '<option value="">All Categories</option>' +
-            Array.from(this.categories)
-                .sort()
-                .map(cat => `<option value="${cat}">${cat}</option>`)
-                .join('');
-        
-        // Update project filter
-        projectFilter.innerHTML = '<option value="">All Projects</option>' +
-            Array.from(this.projects)
-                .sort()
-                .map(proj => `<option value="${proj}">${proj}</option>`)
-                .join('');
-    }
-
-    displayCredentials(credentials) {
-        const container = document.getElementById('credentialsContainer');
-        if (!container) return;
-
-        container.innerHTML = credentials.length ? '' :
-            '<p class="text-center text-gray-500">No credentials found</p>';
-
-        credentials.forEach(cred => {
-            const card = this.createCredentialCard(cred);
-            container.appendChild(card);
-        });
-    }
-
-    createCredentialCard(credential) {
-        const card = document.createElement('div');
-        card.className = 'credential-card bg-white p-4 rounded-lg shadow-md mb-4';
-        card.innerHTML = `
-            <div class="flex justify-between items-start mb-2">
-                <h3 class="text-lg font-semibold">${credential.name}</h3>
-                <span class="badge ${credential.status === 'active' ? 'badge-success' : 'badge-warning'}">${credential.status}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-4 mb-3">
-                <div>
-                    <p class="text-sm text-gray-600">Project</p>
-                    <p class="font-medium">${credential.project}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-600">Category</p>
-                    <p class="font-medium">${credential.category}</p>
-                </div>
-            </div>
-            <div class="mb-3">
-                <p class="text-sm text-gray-600">Username</p>
-                <div class="flex items-center gap-2">
-                    <p class="font-medium">${credential.username}</p>
-                    <button class="copy-btn text-blue-500 hover:text-blue-700" data-value="${credential.username}">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="mb-4">
-                <p class="text-sm text-gray-600">Password</p>
-                <div class="flex items-center gap-2">
-                    <p class="font-medium password-field">********</p>
-                    <button class="show-password-btn text-blue-500 hover:text-blue-700" data-password="${credential.password}">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="copy-btn text-blue-500 hover:text-blue-700" data-value="${credential.password}">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="flex justify-end gap-2">
-                <button class="share-credential btn btn-outline-primary btn-sm" data-id="${credential._id}">
-                    <i class="fas fa-share-alt"></i> Share
-                </button>
-                <button class="edit-credential btn btn-outline-secondary btn-sm" data-id="${credential._id}">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="delete-credential btn btn-outline-danger btn-sm" data-id="${credential._id}">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </div>
-        `;
-        return card;
-    }    async saveCredential() {
-        try {
-            const form = document.getElementById('credentialForm');
-            const formData = {
-                project: document.getElementById('project').value,
-                category: document.getElementById('category').value,
-                name: document.getElementById('name').value,
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value,
-                notes: document.getElementById('notes').value
-            };
-
-            // Validate required fields
-            if (!formData.project || !formData.category || !formData.name || !formData.username || !formData.password) {
-                throw new Error('All fields are required');
-            }
-
-            const response = await fetch('/api/credentials', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to save credential');
-            }
-
-            // Clear form and reload credentials
-            form.reset();
-            await this.loadCredentials();
-            
-            // Show success message
-            alert('Credential saved successfully!');
-        } catch (error) {
-            console.error('Error saving credential:', error);
-            alert(error.message);
-        }
-    }    async deleteCredential(id) {
-        if (!confirm('Are you sure you want to delete this credential?')) return;
-
-        try {
-            await window.api.deleteCredential(id);
-            this.showSuccess('Credential deleted successfully');
-            this.loadCredentials();
-        } catch (error) {
-            console.error('Error deleting credential:', error);
-            this.showError('Failed to delete credential');
-        }
-    }
-
-    async showShareDialog(id) {
-        const email = prompt('Enter email address to share with:');
-        if (!email) return;
-
-        try {
-            const response = await fetch(`/api/credentials/${id}/share`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ shareWith: email })
-            });
-
-            if (!response.ok) throw new Error('Failed to share credential');
-            
-            this.showSuccess('Credential shared successfully');
-        } catch (error) {
-            console.error('Error sharing credential:', error);
-            this.showError('Failed to share credential');
-        }
-    }
-
-    async copyToClipboard(text) {
-        try {
-            await navigator.clipboard.writeText(text);
-            this.showSuccess('Copied to clipboard');
-        } catch (error) {
-            console.error('Failed to copy to clipboard:', error);
-            this.showError('Failed to copy to clipboard');
-        }
-    }
-
-    filterCredentials(search) {
+    }    filterCredentials(search) {
         const credentials = document.querySelectorAll('.credential-card');
         const searchLower = search.toLowerCase();
 
@@ -322,16 +253,6 @@ class CredentialManager {
             const cardProject = card.querySelector('[data-project]')?.dataset.project;
             card.style.display = !project || cardProject === project ? '' : 'none';
         });
-    }
-
-    showSuccess(message) {
-        // Implement toast or notification system
-        alert(message); // Replace with better UI notification
-    }
-
-    showError(message) {
-        // Implement toast or notification system
-        alert('Error: ' + message); // Replace with better UI notification
     }
 }
 

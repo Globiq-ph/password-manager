@@ -1,16 +1,19 @@
 // Main application initialization
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize API
+    window.api = new Api();
+    
+    // Ensure user context
+    Api.ensureUserContext();
+    
     // Initialize tabs
     initializeTabs();
     
     // Check admin status and show/hide admin features
-    checkAdminStatus();
+    await checkAdminStatus();
 
-    // Initialize logout handler
-    initializeLogout();
-
-    // Initialize user session checker
-    initializeSessionChecker();
+    // Load initial credentials
+    await loadCredentials();
 });
 
 function initializeTabs() {
@@ -39,33 +42,125 @@ function initializeTabs() {
 
 async function checkAdminStatus() {
     try {
-        const data = await window.api.getAdminStatus();
+        const { isAdmin, role } = await window.api.checkAdminStatus();
+        const adminTab = document.querySelector('[data-tab="adminPanel"]');
         
-        // Store admin status
-        localStorage.setItem('isAdmin', data.isAdmin);
-        if (data.role) {
-            localStorage.setItem('adminRole', data.role);
-        }
-
-        const adminTab = document.getElementById('adminTab');
-        const adminFeatures = document.querySelectorAll('.admin-only');
-
-        if (data.isAdmin) {
-            adminTab?.style.display = 'block';
-            adminFeatures.forEach(el => el.style.display = 'block');
-
-            // Show super admin features if applicable
-            if (data.role === 'super_admin') {
-                document.querySelectorAll('.super-admin-only')
-                    .forEach(el => el.style.display = 'block');
+        if (adminTab) {
+            if (isAdmin) {
+                adminTab.style.display = 'block';
+                loadAdminContent();
+            } else {
+                adminTab.style.display = 'none';
             }
-        } else {
-            adminTab?.style.display = 'none';
-            adminFeatures.forEach(el => el.style.display = 'none');
         }
     } catch (error) {
         console.error('Error checking admin status:', error);
     }
+}
+
+async function loadCredentials() {
+    try {
+        const credentials = await window.api.getAllCredentials();
+        const container = document.getElementById('viewCredentials');
+        
+        if (!container) {
+            console.error('Credentials container not found');
+            return;
+        }
+
+        if (!credentials || credentials.length === 0) {
+            container.innerHTML = '<p>No credentials found.</p>';
+            return;
+        }
+
+        const table = document.createElement('table');
+        table.className = 'credentials-table';
+        
+        // Create table header
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>Project</th>
+                    <th>Category</th>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${credentials.map(cred => `
+                    <tr>
+                        <td>${cred.project}</td>
+                        <td>${cred.category}</td>
+                        <td>${cred.name}</td>
+                        <td>${cred.username}</td>
+                        <td>
+                            <button class="copy-btn" data-value="${cred.username}">Copy Username</button>
+                            <button class="view-password-btn" data-id="${cred._id}">View Password</button>
+                            <button class="delete-btn" data-id="${cred._id}">Delete</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        `;
+
+        container.innerHTML = '';
+        container.appendChild(table);
+
+        // Add event listeners for buttons
+        addCredentialButtonListeners();
+    } catch (error) {
+        console.error('Error loading credentials:', error);
+        document.getElementById('viewCredentials').innerHTML = 
+            '<p class="error">Error loading credentials. Please try again later.</p>';
+    }
+}
+
+function addCredentialButtonListeners() {
+    // Copy username
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const value = e.target.dataset.value;
+            await navigator.clipboard.writeText(value);
+            alert('Username copied to clipboard!');
+        });
+    });
+
+    // View password
+    document.querySelectorAll('.view-password-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const id = e.target.dataset.id;
+            try {
+                const response = await window.api.getCredentialPassword(id);
+                if (response.password) {
+                    const confirmed = confirm('Do you want to copy the password to clipboard?');
+                    if (confirmed) {
+                        await navigator.clipboard.writeText(response.password);
+                        alert('Password copied to clipboard!');
+                    }
+                }
+            } catch (error) {
+                console.error('Error viewing password:', error);
+                alert('Error retrieving password');
+            }
+        });
+    });
+
+    // Delete credential
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const id = e.target.dataset.id;
+            if (confirm('Are you sure you want to delete this credential?')) {
+                try {
+                    await window.api.deleteCredential(id);
+                    await loadCredentials(); // Reload the list
+                } catch (error) {
+                    console.error('Error deleting credential:', error);
+                    alert('Error deleting credential');
+                }
+            }
+        });
+    });
 }
 
 async function loadAdminContent() {
