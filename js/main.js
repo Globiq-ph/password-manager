@@ -7,11 +7,50 @@ microsoftTeams.app.initialize().then(() => {
     initializeApp();
 });
 
+function verifyUserContext() {
+    const userId = localStorage.getItem('teamsUserId');
+    const userName = localStorage.getItem('teamsUserName');
+    const userEmail = localStorage.getItem('teamsUserEmail');
+    
+    console.log('Current user context:', { userId, userName, userEmail });
+    
+    // Verify all user context values exist
+    if (!userId || !userName || !userEmail) {
+        console.warn('Missing user context, resetting to defaults');
+        localStorage.setItem('teamsUserId', 'dev-user');
+        localStorage.setItem('teamsUserName', 'Developer');
+        localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
+    }
+    
+    // Verify we can read the values back
+    const verifyId = localStorage.getItem('teamsUserId');
+    const verifyName = localStorage.getItem('teamsUserName');
+    const verifyEmail = localStorage.getItem('teamsUserEmail');
+    
+    if (!verifyId || !verifyName || !verifyEmail) {
+        console.error('Failed to verify user context after setting');
+        throw new Error('User context verification failed');
+    }
+    
+    console.log('User context verified:', {
+        userId: verifyId,
+        userName: verifyName,
+        userEmail: verifyEmail
+    });
+}
+
 function initializeApp() {
-    // Set default development values
-    localStorage.setItem('teamsUserId', 'dev-user');
-    localStorage.setItem('teamsUserName', 'Developer');
-    localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
+    // Check if user context already exists
+    if (!localStorage.getItem('teamsUserId') || !localStorage.getItem('teamsUserName') || !localStorage.getItem('teamsUserEmail')) {
+        console.log('Setting default user context');
+        // Set default development values if not set
+        localStorage.setItem('teamsUserId', 'dev-user');
+        localStorage.setItem('teamsUserName', 'Developer');
+        localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
+    }
+
+    // Verify user context
+    verifyUserContext();
     
     // Initialize UI elements
     const adminLoginForm = document.getElementById('adminLoginForm');

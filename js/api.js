@@ -1,7 +1,8 @@
 const API_BASE_URL = 'https://password-manager-wab6.onrender.com/api';
 
 const api = {
-    // Helper to get auth headers with fallback values    getAuthHeaders() {
+    // Helper to get auth headers with fallback values
+    getAuthHeaders() {
         // Get user info from localStorage with fallbacks
         const userId = localStorage.getItem('teamsUserId') || 'dev-user';
         const userName = localStorage.getItem('teamsUserName') || 'Developer';
@@ -19,11 +20,13 @@ const api = {
         headers['user-context'] = userId;
         
         return headers;
-    },
-
-    async handleResponse(response) {
+    },    async handleResponse(response) {
         const contentType = response.headers.get('content-type');
         const isJson = contentType && contentType.includes('application/json');
+        
+        // Log request headers for debugging
+        const headers = this.getAuthHeaders();
+        console.log('Request headers:', headers);
         
         try {
             const data = isJson ? await response.json() : await response.text();
