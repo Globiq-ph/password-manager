@@ -821,55 +821,35 @@
 
     <!-- Add Credential Tab -->
     <div id="addCredential" class="tab-content active">
-        <div class="add-password-form">                
+        <!-- Credential Form -->
+        <form id="credentialForm" class="credential-form">
             <div class="form-group">
                 <label for="project">Project</label>
-                <input type="text" id="project" class="input-field" placeholder="Enter project name">
+                <input type="text" id="project" name="project" required>
             </div>
-
             <div class="form-group">
                 <label for="category">Category</label>
-                <input type="text" id="category" class="input-field" placeholder="Enter category name">
+                <input type="text" id="category" name="category" required>
             </div>
-
-            <div class="form-group">
-                <label for="status">Status</label>
-                <select id="status" class="input-field">
-                    <option value="active">Active</option>
-                    <option value="expired">Expired</option>
-                    <option value="restricted">Restricted</option>
-                </select>
-            </div>
-
-            <div class="form-group admin-only" style="display: none;">
-                <label>
-                    <input type="checkbox" id="isAdmin"> Admin View Only (Read-only credential)
-                </label>
-            </div>
-
             <div class="form-group">
                 <label for="name">Name</label>
-                <input type="text" id="name" class="input-field" placeholder="Enter credential name" required>
+                <input type="text" id="name" name="name" required>
             </div>
-
             <div class="form-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" class="input-field" placeholder="Enter username" required>
+                <input type="text" id="username" name="username" required>
             </div>
-
             <div class="form-group">
                 <label for="password">Password</label>
-                <div class="password-input-group">
-                    <input type="password" id="password" class="input-field" placeholder="Enter password" required>
-                    <div class="password-strength">
-                        <div class="password-strength-bar"></div>
-                    </div>
-                    <div id="passwordStrengthText">Password Strength: Not Set</div>
-                </div>
+                <input type="password" id="password" name="password" required>
+                <div id="password-strength" class="password-strength-indicator"></div>
             </div>
-
-            <button id="saveCredential" class="save-button">Save Credential</button>
-        </div>
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes"></textarea>
+            </div>
+            <button type="submit" id="saveCredential">Save Credential</button>
+        </form>
     </div>
 
     <!-- View Credentials Tab -->

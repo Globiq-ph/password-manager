@@ -72,68 +72,41 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 });
 
 // Create new credential
-router.post('/', validateCredential, async (req, res) => {
+router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
     try {
-        const userId = req.header('X-User-Id');
-        const userName = req.header('X-User-Name');
-        
-        // Log the request details
-        console.log('Create Credential Request:', {
-            headers: req.headers,
-            body: { ...req.body, password: '********' }
-        });
-        
-        if (!userId || !userName) {
-            console.error('Authentication missing:', { userId, userName });
-            return res.status(401).json({ 
-                error: 'Authentication required',
-                details: 'User ID and Name are required in headers'
-            });
-        }
+        const { userId } = req.user;
+        const { project, category, name, username, password, notes } = req.body;
 
-        const { project, category, name, username, password, status = 'active', isAdminOnly = false } = req.body;
-        
-        // Additional validation
-        if (!project?.trim() || !category?.trim() || !name?.trim() || !username?.trim() || !password?.trim()) {
-            console.error('Invalid input:', { project, category, name, username });
-            return res.status(400).json({ 
-                error: 'Invalid input',
-                details: 'All fields must be non-empty strings'
-            });
-        }
+        // Encrypt sensitive data
+        const encryptedPassword = await encrypt(password);
 
-        console.log('Encrypting password...');
-        const encryptedPassword = encrypt(password);
-        console.log('Password encrypted successfully');
-
-        console.log('Saving credential to database...');
         const credential = new Credential({
             userId,
-            userName,
             project,
             category,
             name,
             username,
-            encryptedPassword,
-            status,
-            isAdminOnly,
-            createdAt: new Date(),
-            updatedAt: new Date()
+            password: encryptedPassword,
+            notes
         });
 
-        const savedCredential = await credential.save();
-        console.log('Credential saved successfully:', savedCredential._id);
+        await credential.save();
 
+        // Return success without sensitive data
         res.status(201).json({
-            message: 'Credential created successfully',
+            message: 'Credential saved successfully',
             credential: {
-                ...savedCredential.toObject(),
-                password: '********'
+                id: credential._id,
+                project: credential.project,
+                category: credential.category,
+                name: credential.name,
+                username: credential.username,
+                createdAt: credential.createdAt
             }
         });
     } catch (error) {
-        console.error('Error creating credential:', error);
-        res.status(500).json({ error: 'Failed to create credential' });
+        console.error('Error saving credential:', error);
+        res.status(500).json({ error: 'Error saving credential' });
     }
 });
 

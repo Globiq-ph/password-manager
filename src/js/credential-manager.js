@@ -8,15 +8,21 @@ class CredentialManager {
 
     initializeEventListeners() {
         // Save credential form submission
-        document.getElementById('saveCredential')?.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await this.saveCredential();
-        });
+        const form = document.getElementById('credentialForm');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.saveCredential();
+            });
+        }
 
         // Password strength checker
-        document.getElementById('password')?.addEventListener('input', (e) => {
-            this.checkPasswordStrength(e.target.value);
-        });
+        const passwordInput = document.getElementById('password');
+        if (passwordInput) {
+            passwordInput.addEventListener('input', (e) => {
+                this.checkPasswordStrength(e.target.value);
+            });
+        }
 
         // Search functionality
         document.getElementById('searchCredentials')?.addEventListener('input', (e) => {
@@ -56,32 +62,56 @@ class CredentialManager {
     }
 
     checkPasswordStrength(password) {
-        const strengthMeter = document.getElementById('passwordStrength');
-        const strengthText = document.getElementById('strengthText');
-        
-        if (!password) {
-            strengthMeter.value = 0;
-            strengthText.textContent = '';
-            return;
-        }
+        const strengthIndicator = document.getElementById('password-strength');
+        if (!strengthIndicator) return;
 
         let strength = 0;
-        
+        let feedback = [];
+
         // Length check
-        if (password.length >= 8) strength += 20;
-        if (password.length >= 12) strength += 10;
+        if (password.length >= 8) {
+            strength += 1;
+        } else {
+            feedback.push('at least 8 characters');
+        }
+
+        // Contains number
+        if (/\d/.test(password)) {
+            strength += 1;
+        } else {
+            feedback.push('a number');
+        }
+
+        // Contains lowercase
+        if (/[a-z]/.test(password)) {
+            strength += 1;
+        } else {
+            feedback.push('a lowercase letter');
+        }
+
+        // Contains uppercase
+        if (/[A-Z]/.test(password)) {
+            strength += 1;
+        } else {
+            feedback.push('an uppercase letter');
+        }
+
+        // Contains special char
+        if (/[^A-Za-z0-9]/.test(password)) {
+            strength += 1;
+        } else {
+            feedback.push('a special character');
+        }
+
+        const strengthText = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][strength];
+        const strengthClass = ['very-weak', 'weak', 'fair', 'good', 'strong'][strength];
+
+        strengthIndicator.textContent = strengthText;
+        strengthIndicator.className = `password-strength-indicator ${strengthClass}`;
         
-        // Character variety checks
-        if (/[A-Z]/.test(password)) strength += 20; // Uppercase
-        if (/[a-z]/.test(password)) strength += 20; // Lowercase
-        if (/[0-9]/.test(password)) strength += 20; // Numbers
-        if (/[^A-Za-z0-9]/.test(password)) strength += 20; // Special characters
-        
-        strengthMeter.value = strength;
-        
-        if (strength < 40) strengthText.textContent = 'Weak';
-        else if (strength < 70) strengthText.textContent = 'Moderate';
-        else strengthText.textContent = 'Strong';
+        if (feedback.length > 0) {
+            strengthIndicator.title = `Add ${feedback.join(', ')}`;
+        }
     }    async loadCredentials() {
         try {
             const credentials = await window.api.getCredentials();
@@ -181,34 +211,45 @@ class CredentialManager {
         `;
         return card;
     }    async saveCredential() {
-        const form = document.getElementById('credentialForm');
-        if (!form) {
-            console.error('Form not found');
-            this.showError('Form not found');
-            return;
-        }
-
-        // Validate form fields
-        const requiredFields = ['project', 'category', 'name', 'username', 'password'];
-        const missingFields = requiredFields.filter(field => !form[field]?.value?.trim());
-        
-        if (missingFields.length > 0) {
-            this.showError(`Please fill in all required fields: ${missingFields.join(', ')}`);
-            return;
-        }
-
-        const formData = new FormData(form);
-        const credential = Object.fromEntries(formData.entries());
-
         try {
-            console.log('Saving credential:', { ...credential, password: '********' });
-            await window.api.createCredential(credential);
-            this.showSuccess('Credential saved successfully');
+            const form = document.getElementById('credentialForm');
+            const formData = {
+                project: document.getElementById('project').value,
+                category: document.getElementById('category').value,
+                name: document.getElementById('name').value,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                notes: document.getElementById('notes').value
+            };
+
+            // Validate required fields
+            if (!formData.project || !formData.category || !formData.name || !formData.username || !formData.password) {
+                throw new Error('All fields are required');
+            }
+
+            const response = await fetch('/api/credentials', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to save credential');
+            }
+
+            // Clear form and reload credentials
             form.reset();
             await this.loadCredentials();
+            
+            // Show success message
+            alert('Credential saved successfully!');
         } catch (error) {
             console.error('Error saving credential:', error);
-            this.showError(error.message || 'Failed to save credential');
+            alert(error.message);
         }
     }    async deleteCredential(id) {
         if (!confirm('Are you sure you want to delete this credential?')) return;
