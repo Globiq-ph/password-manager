@@ -76,33 +76,55 @@ class CredentialManager {
         if (strength > 40) return '#FFC107';
         if (strength > 20) return '#FF9800';
         return '#f44336';
-    }
-
-    async saveCredential() {
+    }    async saveCredential() {
         const loadingIndicator = document.getElementById('loadingIndicator');
         loadingIndicator.style.display = 'block';
 
         try {
+            // Validate form fields
+            const project = document.getElementById('project').value.trim();
+            const category = document.getElementById('category').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const status = document.getElementById('status').value;
+            const isAdmin = document.getElementById('isAdmin')?.checked || false;
+
+            if (!project || !category || !name || !username || !password) {
+                throw new Error('All fields are required');
+            }
+
+            console.log('Creating credential:', { project, category, name, username, status, isAdmin });
+
             const credential = {
-                project: document.getElementById('project').value,
-                category: document.getElementById('category').value,
-                name: document.getElementById('name').value,
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value,
-                status: document.getElementById('status').value,
-                isAdminOnly: document.getElementById('isAdmin')?.checked || false
+                project,
+                category,
+                name,
+                username,
+                password,
+                status,
+                isAdminOnly: isAdmin
             };
 
-            const response = await window.api.createCredential(credential);
+            // Ensure we have user context
+            if (!localStorage.getItem('userId') || !localStorage.getItem('userName') || !localStorage.getItem('userEmail')) {
+                throw new Error('User context is missing. Please refresh the page or log in again.');
+            }
 
-            if (response) {
+            console.log('Sending credential to API...');
+            const response = await window.api.createCredential(credential);
+            console.log('API Response:', response);
+
+            if (response && response._id) {
                 this.showAlert('Credential saved successfully!', 'success');
                 this.resetForm();
                 await this.loadCredentials();
+            } else {
+                throw new Error('Invalid response from server');
             }
         } catch (error) {
             console.error('Error saving credential:', error);
-            this.showAlert('Failed to save credential. ' + error.message, 'error');
+            this.showAlert('Failed to save credential: ' + (error.message || 'Unknown error'), 'error');
         } finally {
             loadingIndicator.style.display = 'none';
         }

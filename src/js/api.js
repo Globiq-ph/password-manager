@@ -35,29 +35,33 @@ class API {
             'X-User-Name': localStorage.getItem('userName'),
             'X-User-Email': localStorage.getItem('userEmail')
         };
-    }
-
-    static async fetchWithAuth(endpoint, options = {}) {
+    }    static async fetchWithAuth(endpoint, options = {}) {
         const headers = this.getHeaders();
         const url = `${API_BASE_URL}${endpoint}`;
         
         console.log(`Fetching ${options.method || 'GET'} ${url}`);
         console.log('Headers:', headers);
+        if (options.body) console.log('Request body:', options.body);
         
-        const response = await fetch(url, {
-            ...options,
-            headers: { ...headers, ...options.headers },
-            credentials: 'include'
-        });
-        
-        const data = await response.json();
-        console.log('Response:', data);
-        
-        if (!response.ok) {
-            throw new Error(data.message || data.error || 'API request failed');
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers: { ...headers, ...options.headers },
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            console.log('Response:', data);
+            
+            if (!response.ok) {
+                throw new Error(data.message || data.error || 'API request failed');
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('API Error:', error);
+            throw error;
         }
-        
-        return data;
     }
 
     // Credential endpoints

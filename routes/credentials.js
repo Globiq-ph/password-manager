@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
 const { encrypt, decrypt } = require('../src/utils/encryption');
-
-// Define the Credential Schema if not already defined elsewhere
-const credentialSchema = new mongoose.Schema({
+const Credential = require('../models/credential');
     project: {
         type: String,
         required: true
@@ -77,8 +74,10 @@ router.get('/', async (req, res) => {
 });
 
 // Create new credential
-router.post('/', async (req, res) => {
-    try {
+router.post('/', async (req, res) => {    try {
+        console.log('Creating new credential - Headers:', req.headers);
+        console.log('Request body:', req.body);
+
         const userId = req.header('X-User-Id');
         const userName = req.header('X-User-Name');
         const userEmail = req.header('X-User-Email');
@@ -86,6 +85,7 @@ router.post('/', async (req, res) => {
         // Check if any of the required headers are missing or set to 'null'
         if (!userId || !userName || !userEmail || 
             userId === 'null' || userName === 'null' || userEmail === 'null') {
+            console.log('Authentication failed:', { userId, userName, userEmail });
             return res.status(401).json({ 
                 message: 'Authentication required',
                 details: 'Valid user ID, name, and email are required'
@@ -95,6 +95,7 @@ router.post('/', async (req, res) => {
         const { project, category, name, username, password, status, isAdminOnly } = req.body;
 
         if (!project || !category || !name || !username || !password) {
+            console.log('Missing fields:', { project, category, name, username });
             return res.status(400).json({
                 message: 'Missing required fields',
                 details: 'Project, category, name, username, and password are required'
@@ -102,7 +103,9 @@ router.post('/', async (req, res) => {
         }
 
         // Encrypt password
+        console.log('Encrypting password...');
         const encryptedPassword = encrypt(password);
+        console.log('Password encrypted successfully');
 
         const credential = new Credential({
             project,
@@ -110,8 +113,8 @@ router.post('/', async (req, res) => {
             name,
             username,
             password: encryptedPassword,
-            status,
-            isAdminOnly,
+            status: status || 'active',
+            isAdminOnly: isAdminOnly || false,
             createdBy: {
                 userId,
                 userName,
@@ -119,7 +122,9 @@ router.post('/', async (req, res) => {
             }
         });
 
+        console.log('Saving credential to database...');
         const savedCredential = await credential.save();
+        console.log('Credential saved successfully:', savedCredential._id);
         return res.status(201).json(savedCredential);
     } catch (error) {
         console.error('Error creating credential:', error);
