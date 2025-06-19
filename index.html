@@ -804,7 +804,8 @@
 
     <h1 class="app-title">GlobiQ Password Manager</h1>
 
-    <!-- Tab Navigation -->    <div class="tabs">
+    <!-- Tab Navigation -->
+    <div class="tabs">
         <div class="tab active" data-tab="addCredential" onclick="switchTab('addCredential')">
             <i class="fas fa-plus-circle"></i> Add Credential
         </div>
@@ -968,6 +969,15 @@
                 }
             }
         });
+
+        function goToAdmin() {
+            window.location.href = '/admin';
+        }
+
+        // Show admin tab if user is admin
+        if (localStorage.getItem('isAdmin') === 'true') {
+            document.getElementById('adminTab').style.display = 'block';
+        }
     </script>
 </body>
 </html>

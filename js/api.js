@@ -1,26 +1,42 @@
-const API_BASE_URL = 'https://password-manager-wab6.onrender.com/api';
+const API_BASE_URL = '/api';
 
 const api = {
+    // Helper to ensure user context exists
+    ensureUserContext() {
+        if (!localStorage.getItem('teamsUserId') || !localStorage.getItem('teamsUserName') || !localStorage.getItem('teamsUserEmail')) {
+            console.log('Setting default user context from API');
+            localStorage.setItem('teamsUserId', 'dev-user');
+            localStorage.setItem('teamsUserName', 'Developer');
+            localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
+            localStorage.setItem('isAdmin', 'true'); // Set admin status for development
+        }
+    },
+
     // Helper to get auth headers with fallback values
     getAuthHeaders() {
+        this.ensureUserContext();
+        
         // Get user info from localStorage with fallbacks
-        const userId = localStorage.getItem('teamsUserId') || 'dev-user';
-        const userName = localStorage.getItem('teamsUserName') || 'Developer';
-        const userEmail = localStorage.getItem('teamsUserEmail') || 'dev@globiq.com';
+        const userId = localStorage.getItem('teamsUserId');
+        const userName = localStorage.getItem('teamsUserName');
+        const userEmail = localStorage.getItem('teamsUserEmail');
 
-        const headers = {
+        if (!userId || !userName || !userEmail) {
+            console.error('Failed to get user context from localStorage');
+            throw new Error('User context not available');
+        }
+
+        const headers = new Headers({
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'x-user-id': userId,
-            'x-user-name': userName,
-            'x-user-email': userEmail
-        };
-
-        // Add legacy header for backward compatibility
-        headers['user-context'] = userId;
+            'X-User-Id': userId,
+            'X-User-Name': userName,
+            'X-User-Email': userEmail,
+            'User-Context': userId // legacy header
+        });
         
         return headers;
-    },    async handleResponse(response) {
+    },async handleResponse(response) {
         const contentType = response.headers.get('content-type');
         const isJson = contentType && contentType.includes('application/json');
         
@@ -47,15 +63,17 @@ const api = {
             console.error('Response handling error:', error);
             throw error;
         }
-    },
-
-    async getCredentials() {
+    },    async getCredentials() {
         try {
             console.log('Fetching credentials...');
+            const headers = this.getAuthHeaders();
+            console.log('Request headers:', Object.fromEntries(headers.entries()));
+            
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'GET',
-                headers: this.getAuthHeaders(),
-                mode: 'cors'
+                headers: headers,
+                mode: 'cors',
+                credentials: 'include'
             });
             
             return await this.handleResponse(response);
@@ -94,12 +112,14 @@ const api = {
             console.log('Sending request with data:', {
                 ...requestData,
                 password: '********'
-            });
-
+            });            const headers = this.getAuthHeaders();
+            console.log('Request headers:', Object.fromEntries(headers.entries()));
+            
             const response = await fetch(`${API_BASE_URL}/credentials`, {
                 method: 'POST',
-                headers: this.getAuthHeaders(),
+                headers: headers,
                 mode: 'cors',
+                credentials: 'include',
                 body: JSON.stringify(requestData)
             });
 

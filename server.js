@@ -11,12 +11,40 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+// Serve static files
+app.use(express.static(path.join(__dirname)));
+
 // Parse JSON bodies with increased limit - THIS MUST COME BEFORE OTHER MIDDLEWARE
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Trust proxy
 app.set('trust proxy', 1);
+
+// Request logging middleware - AFTER body parsing
+app.use((req, res, next) => {
+    const timestamp = new Date().toISOString();
+    console.log(`${timestamp} ${req.method} ${req.url}`);
+    
+    // Log headers
+    console.log('Headers:', {
+        'content-type': req.headers['content-type'],
+        'x-user-id': req.headers['x-user-id'],
+        'x-user-name': req.headers['x-user-name'],
+        'x-user-email': req.headers['x-user-email']
+    });
+
+    // Safely log request body for POST/PUT requests
+    if (['POST', 'PUT'].includes(req.method) && req.body) {
+        const sanitizedBody = { ...req.body };
+        if (sanitizedBody.password) {
+            sanitizedBody.password = '********';
+        }
+        console.log('Request body:', sanitizedBody);
+    }
+
+    next();
+});
 
 // CORS configuration - more permissive for debugging
 app.use(cors({
@@ -46,42 +74,24 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// Request logging middleware - AFTER body parsing
-app.use((req, res, next) => {
-    const timestamp = new Date().toISOString();
-    console.log(`${timestamp} ${req.method} ${req.url}`);
-    
-    // Log headers
-    console.log('Headers:', {
-        'content-type': req.headers['content-type'],
-        'x-user-id': req.headers['x-user-id'],
-        'x-user-name': req.headers['x-user-name'],
-        'x-user-email': req.headers['x-user-email']
-    });
-
-    // Safely log request body for POST/PUT requests
-    if (['POST', 'PUT'].includes(req.method) && req.body) {
-        const sanitizedBody = { ...req.body };
-        if (sanitizedBody.password) {
-            sanitizedBody.password = '********';
-        }
-        console.log('Request body:', sanitizedBody);
-    }
-
-    next();
-});
-
 // Connect to database
 connectDB().catch(err => {
     console.error('Failed to connect to MongoDB:', err);
 });
 
-// Serve static files
-app.use(express.static(path.join(__dirname)));
-
 // Routes
 app.use('/api/credentials', credentialsRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Serve index.html for root path
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Serve admin.html for /admin path
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {

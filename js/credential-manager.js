@@ -4,6 +4,9 @@ window.credentialManager = {
     isLoading: false,
 
     initialize() {
+        // Ensure user context exists
+        api.ensureUserContext();
+        
         this.passwordList = document.getElementById('passwordList');
         this.searchInput = document.getElementById('searchCredentials');
         this.projectFilter = document.getElementById('projectFilter');
