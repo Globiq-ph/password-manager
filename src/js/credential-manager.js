@@ -182,17 +182,33 @@ class CredentialManager {
         return card;
     }    async saveCredential() {
         const form = document.getElementById('credentialForm');
+        if (!form) {
+            console.error('Form not found');
+            this.showError('Form not found');
+            return;
+        }
+
+        // Validate form fields
+        const requiredFields = ['project', 'category', 'name', 'username', 'password'];
+        const missingFields = requiredFields.filter(field => !form[field]?.value?.trim());
+        
+        if (missingFields.length > 0) {
+            this.showError(`Please fill in all required fields: ${missingFields.join(', ')}`);
+            return;
+        }
+
         const formData = new FormData(form);
         const credential = Object.fromEntries(formData.entries());
 
         try {
+            console.log('Saving credential:', { ...credential, password: '********' });
             await window.api.createCredential(credential);
             this.showSuccess('Credential saved successfully');
             form.reset();
-            this.loadCredentials();
+            await this.loadCredentials();
         } catch (error) {
             console.error('Error saving credential:', error);
-            this.showError(error.message);
+            this.showError(error.message || 'Failed to save credential');
         }
     }    async deleteCredential(id) {
         if (!confirm('Are you sure you want to delete this credential?')) return;

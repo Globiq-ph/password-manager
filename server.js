@@ -16,19 +16,49 @@ app.use(cors());
 app.use(helmet({
     contentSecurityPolicy: false // Disabled for development
 }));
+
+// Parse JSON bodies with increased limit
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files
+// Serve static files - ensure absolute paths
 app.use(express.static(path.join(__dirname)));
 
-// API routes
-app.use('/api/credentials', credentialsRoutes);
-app.use('/api/admin', adminRoutes);
+// Serve the HTML file for all routes except /api
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+        return next();
+    }
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// API routes with error handling
+app.use('/api/credentials', (req, res, next) => {
+    console.log(`${req.method} ${req.url}`, { 
+        headers: req.headers,
+        body: req.body,
+        query: req.query
+    });
+    next();
+}, credentialsRoutes);
+
+app.use('/api/admin', (req, res, next) => {
+    console.log(`${req.method} ${req.url}`, { 
+        headers: req.headers,
+        body: req.body,
+        query: req.query
+    });
+    next();
+}, adminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok' });
+    res.json({ status: 'ok', environment: process.env.NODE_ENV });
+});
+
+// Serve index.html for all other routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Trust proxy
@@ -138,10 +168,25 @@ app.use((err, req, res, next) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error('Error:', err.stack);
+    console.error('Error:', err);
+    
+    if (err.name === 'ValidationError') {
+        return res.status(400).json({
+            error: 'Validation Error',
+            details: err.message
+        });
+    }
+    
+    if (err.name === 'MongoError' || err.name === 'MongoServerError') {
+        return res.status(503).json({
+            error: 'Database Error',
+            details: 'A database error occurred'
+        });
+    }
+    
     res.status(500).json({
-        message: 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        error: 'Internal Server Error',
+        details: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
     });
 });
 
@@ -151,7 +196,13 @@ app.use((req, res) => {
 });
 
 // Start server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, async () => {
+    try {
+        await connectDB();
+        console.log(`Server running on port ${PORT}`);
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
 });

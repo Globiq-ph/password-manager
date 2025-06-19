@@ -1,15 +1,24 @@
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3000/api'
-    : 'https://password-manager-p49n.onrender.com/api';
-
 class Api {
     constructor() {
-        this.baseUrl = '/api';
+        this.baseUrl = '/api';  // Use relative URL to automatically handle all environments
+        this.setHeaders();
+    }
+
+    setHeaders() {
+        // Get user information
+        const userId = localStorage.getItem('userId');
+        const userEmail = localStorage.getItem('userEmail');
+        const userName = localStorage.getItem('userName');
+
+        if (!userId || !userEmail) {
+            console.warn('User context not found, using default development credentials');
+        }
+
         this.headers = {
             'Content-Type': 'application/json',
-            'X-User-Id': localStorage.getItem('userId') || '',
-            'X-User-Email': localStorage.getItem('userEmail') || '',
-            'X-User-Name': localStorage.getItem('userName') || ''
+            'X-User-Id': userId || 'dev-user',
+            'X-User-Email': userEmail || 'dev@globiq.com',
+            'X-User-Name': userName || 'john doe'
         };
     }
 

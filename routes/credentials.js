@@ -18,15 +18,27 @@ const validateCredential = (req, res, next) => {
     next();
 };
 
+// Middleware to ensure authentication
+const ensureAuthenticated = (req, res, next) => {
+    const userId = req.header('X-User-Id');
+    const userEmail = req.header('X-User-Email');
+    const userName = req.header('X-User-Name');
+    
+    if (!userId || !userEmail) {
+        return res.status(401).json({ 
+            error: 'Authentication required',
+            details: 'User ID and email are required in headers'
+        });
+    }
+
+    req.user = { userId, userEmail, userName };
+    next();
+};
+
 // Get all credentials for the user
-router.get('/', async (req, res) => {
+router.get('/', ensureAuthenticated, async (req, res) => {
     try {
-        const userId = req.header('X-User-Id');
-        const userEmail = req.header('X-User-Email');
-        
-        if (!userId || !userEmail) {
-            return res.status(401).json({ error: 'Authentication required' });
-        }
+        const { userId, userEmail } = req.user;
 
         const query = {
             $or: [
@@ -65,15 +77,30 @@ router.post('/', validateCredential, async (req, res) => {
         const userId = req.header('X-User-Id');
         const userName = req.header('X-User-Name');
         
+        // Log the request details
+        console.log('Create Credential Request:', {
+            headers: req.headers,
+            body: { ...req.body, password: '********' }
+        });
+        
         if (!userId || !userName) {
-            return res.status(401).json({ error: 'Authentication required' });
+            console.error('Authentication missing:', { userId, userName });
+            return res.status(401).json({ 
+                error: 'Authentication required',
+                details: 'User ID and Name are required in headers'
+            });
         }
 
         const { project, category, name, username, password, status = 'active', isAdminOnly = false } = req.body;
         
-        console.log('Creating new credential:', { project, category, name, username, password: '********', status, isAdminOnly });
-        console.log('Creating new credential - Headers:', req.headers);
-        console.log('Request body:', req.body);
+        // Additional validation
+        if (!project?.trim() || !category?.trim() || !name?.trim() || !username?.trim() || !password?.trim()) {
+            console.error('Invalid input:', { project, category, name, username });
+            return res.status(400).json({ 
+                error: 'Invalid input',
+                details: 'All fields must be non-empty strings'
+            });
+        }
 
         console.log('Encrypting password...');
         const encryptedPassword = encrypt(password);

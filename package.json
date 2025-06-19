@@ -1,10 +1,12 @@
 {
   "name": "globiq-password-manager",
   "version": "1.0.0",
-  "description": "Secure Password Manager for Teams",  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+  "description": "Secure Password Manager for Teams",  "main": "server.js",  "scripts": {
+    "start": "cross-env NODE_ENV=production node server.js",
+    "dev": "nodemon server.js",
+    "build": "echo 'No build step required'",
+    "test": "echo 'No test specified'",
+    "vercel-build": "echo 'No build step required'"
   },
   "dependencies": {
     "cors": "^2.8.5",
