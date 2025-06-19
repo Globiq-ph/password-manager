@@ -20,24 +20,44 @@ const authenticate = (req, res, next) => {
 // Get all credentials
 router.get('/', async (req, res) => {
     try {
+        console.log('GET /credentials request received');
+        console.log('Headers:', req.headers);
+        
         const userId = req.headers['x-user-id'] || req.headers['user-context'];
         const userName = req.headers['x-user-name'];
         const userEmail = req.headers['x-user-email'];
 
-        console.log('Request headers:', req.headers);
-        console.log('User context:', { userId, userName, userEmail });
-
         if (!userId || !userName || !userEmail) {
             console.log('Missing authentication headers');
-            return res.status(401).json({ error: 'Authentication required' });
+            return res.status(401).json({ 
+                error: 'Authentication required',
+                details: {
+                    userId: !!userId,
+                    userName: !!userName,
+                    userEmail: !!userEmail
+                }
+            });
         }
 
-        const credentials = await Credential.find().sort({ createdAt: -1 });
+        console.log('Authenticated user:', { userId, userName, userEmail });
+        
+        // Query all credentials for now (we can add filtering later)
+        const credentials = await Credential.find({}).sort({ createdAt: -1 });
+        
         console.log(`Found ${credentials.length} credentials`);
-        res.json(credentials);
+        
+        // Send response
+        res.json({
+            success: true,
+            count: credentials.length,
+            data: credentials
+        });
     } catch (error) {
-        console.error('Error fetching credentials:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Error in GET /credentials:', error);
+        res.status(500).json({ 
+            error: 'Internal server error',
+            message: error.message
+        });
     }
 });
 

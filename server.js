@@ -48,17 +48,24 @@ app.use((req, res, next) => {
 
 // CORS configuration
 const corsOptions = {
-    origin: ['https://password-manager-p49n.onrender.com', 'http://localhost:3000'],
+    origin: [
+        'https://password-manager-p49n.onrender.com',
+        'http://localhost:3000',
+        'http://localhost:5000'
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
         'Content-Type',
+        'Accept',
         'Authorization',
         'X-User-Id',
         'X-User-Name',
         'X-User-Email',
         'User-Context'
     ],
-    credentials: true
+    exposedHeaders: ['Content-Length', 'X-Content-Type'],
+    credentials: true,
+    maxAge: 86400 // 24 hours
 };
 
 app.use(cors(corsOptions));

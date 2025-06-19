@@ -32,23 +32,24 @@ window.credentialManager = {
     async loadCredentials() {
         try {
             this.isLoading = true;
-            this.showLoading();
-
-            const response = await fetch(`${window.location.origin}/api/credentials`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': localStorage.getItem('teamsUserId') || 'dev-user',
-                    'x-user-name': localStorage.getItem('teamsUserName') || 'Developer',
-                    'x-user-email': localStorage.getItem('teamsUserEmail') || 'dev@globiq.com',
-                    'user-context': localStorage.getItem('teamsUserId') || 'dev-user'
-                }
-            });
+            this.showLoading();            console.log('Loading credentials...');
+            const headers = api.getAuthHeaders();
+            console.log('Request headers:', Object.fromEntries(headers.entries()));
+            
+            const response = await fetch(`${api.API_BASE_URL}/credentials`, {
+                method: 'GET',
+                headers: headers,
+                mode: 'cors',
+                credentials: 'include'
+            });            const data = await response.json();
+            console.log('Response:', data);
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
             }
 
-            this.credentials = await response.json();
+            this.credentials = data.data || data; // Handle both new and old response format
+            console.log(`Loaded ${this.credentials.length} credentials`);
             this.renderCredentials();
             this.updateFilters();
         } catch (error) {
