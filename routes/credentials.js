@@ -1,53 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { encrypt, decrypt } = require('../src/utils/encryption');
+const { encrypt, decrypt } = require('../utils/encryption');
 const Credential = require('../models/credential');
-    project: {
-        type: String,
-        required: true
-    },
-    category: {
-        type: String,
-        required: true
-    },
-    name: {
-        type: String,
-        required: true
-    },
-    username: {
-        type: String,
-        required: true
-    },
-    password: {
-        iv: String,
-        encryptedData: String,
-        tag: String
-    },
-    status: {
-        type: String,
-        enum: ['active', 'expired', 'restricted'],
-        default: 'active'
-    },
-    createdBy: {
-        userId: String,
-        userName: String,
-        userEmail: String
-    },
-    isAdminOnly: {
-        type: Boolean,
-        default: false
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
-    }
-});
-
-const Credential = mongoose.model('Credential', credentialSchema);
 
 // Get all credentials for the user
 router.get('/', async (req, res) => {

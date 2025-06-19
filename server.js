@@ -47,7 +47,12 @@ app.use((req, res, next) => {
 });
 
 // CORS configuration
-const corsOptions = {
+app.use(cors({
+    origin: '*', // In production, you should specify your actual domain
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-User-Id', 'X-User-Name', 'X-User-Email'],
+    credentials: true
+}));
     origin: [
         'https://password-manager-p49n.onrender.com',
         'http://localhost:3000',
@@ -94,6 +99,11 @@ connectDB().catch(err => {
     console.error('Failed to connect to MongoDB:', err);
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
+
 // Routes
 app.use('/api/credentials', credentialsRoutes);
 app.use('/api/admin', adminRoutes);
@@ -126,12 +136,22 @@ app.use((err, req, res, next) => {
     });
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error:', err.stack);
+    res.status(500).json({
+        message: 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+});
+
 // Handle 404s
 app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Start server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
