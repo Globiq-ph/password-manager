@@ -286,220 +286,241 @@ button:hover {
     padding: 16px;
     margin-bottom: 16px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.credential-item h3 {
-    margin: 0 0 8px 0;
-    color: #800000;
+.credential-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
-.credential-content p {
-    margin: 4px 0;
-}
-
-.password-field {
+.credential-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    margin: 10px 0;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
 }
 
-.password-field input {
-    flex-grow: 1;
-    background-color: var(--background-color);
+.credential-header h3 {
+    margin: 0;
+    color: var(--maroon);
+    font-size: 1.2em;
 }
 
-.show-password-btn {
-    background: #800000;
-    color: white;
+.credential-project {
+    background: var(--maroon-bg);
+    color: var(--maroon);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.credential-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.credential-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.credential-field label {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.credential-field span {
+    font-weight: 500;
+}
+
+.credential-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.action-btn {
+    padding: 6px 12px;
     border: none;
-    padding: 8px 12px;
     border-radius: 4px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
 }
 
-.show-password-btn:hover {
-    background: #600000;
+.view-btn {
+    background: #4CAF50;
+    color: white;
 }
 
-.password-strength {
-    width: 100%;
-    height: 8px;
-    background-color: #eee;
-    border-radius: 4px;
-    margin: 8px 0;
-    overflow: hidden;
+.view-btn:hover {
+    background: #45a049;
 }
 
-.password-strength-bar {
-    height: 100%;
-    width: 0%;
-    transition: width 0.3s ease, background-color 0.3s ease;
+.delete-btn {
+    background: #f44336;
+    color: white;
 }
 
-.password-strength-text {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 15px;
-}
-
-#logoutBtn {
-    background-color: #dc3545;
-}
-
-#logoutBtn:hover {
-    background-color: #c82333;
+.delete-btn:hover {
+    background: #da190b;
 }
 
 .loading {
-    opacity: 0.7;
-    pointer-events: none;
-}
-
-.error-message {
-    color: #dc3545;
-    margin: 10px 0;
-    padding: 10px;
-    background-color: #f8d7da;
-    border-radius: 4px;
-}
-
-.success-message {
-    color: #28a745;
-    margin: 10px 0;
-    padding: 10px;
-    background-color: #d4edda;
-    border-radius: 4px;
-}
-
-/* View Credentials Section */
-.search-container {
-    margin-bottom: 20px;
-}
-
-.credentials-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    padding: 20px 0;
-}
-
-.credential-card {
-    background: var(--white);
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    position: relative;
-}
-
-.credential-card h3 {
-    color: var(--maroon);
-    margin: 0 0 15px 0;
-}
-
-.credential-card .field {
-    margin-bottom: 12px;
-}
-
-.credential-card .field label {
-    font-size: 14px;
-    margin-bottom: 4px;
-}
-
-.credential-card .password-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.credential-card .delete-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
-    border: none;
-    color: var(--maroon);
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
-    transition: background-color 0.2s;
-}
-
-.credential-card .delete-btn:hover {
-    background: var(--maroon-bg);
-}
-
-.alert {
-    padding: 15px;
-    margin-bottom: 20px;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    text-align: center;
-    display: none;
-}
-
-.alert-success {
-    color: #155724;
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-}
-
-.alert-error {
-    color: #721c24;
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-}
-
-.alert-info {
-    color: #0c5460;
-    background-color: #d1ecf1;
-    border-color: #bee5eb;
-}
-
-.password-hidden {
-    font-family: monospace;
-}
-
-.password-visible {
-    font-family: inherit;
-}
-
-.btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.2s;
-}
-
-.btn-show {
-    background: #800000;
-    color: white;
-    margin-left: 8px;
-}
-
-.btn-delete {
-    background: #dc3545;
-    color: white;
-}
-
-.btn:hover {
-    opacity: 0.9;
-}
-
-#passwordList {
-    margin-top: 20px;
-}
-
-.loading, .error, .no-results {
     text-align: center;
     padding: 20px;
     color: #666;
 }
 
 .error {
-    color: #dc3545;
+    text-align: center;
+    padding: 20px;
+    color: #f44336;
+}
+
+.no-credentials {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Search Bar */
+.search-bar {
+    margin-bottom: 20px;
+}
+
+.search-bar input {
+    width: 100%;
+}
+
+/* Credentials List */
+.credentials-list {
+    display: grid;
+    gap: 20px;
+}
+
+.credential-item {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.credential-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.credential-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.credential-header h3 {
+    margin: 0;
+    color: var(--maroon);
+    font-size: 1.2em;
+}
+
+.credential-project {
+    background: var(--maroon-bg);
+    color: var(--maroon);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.credential-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.credential-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.credential-field label {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.credential-field span {
+    font-weight: 500;
+}
+
+.credential-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+
+.view-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.view-btn:hover {
+    background: #45a049;
+}
+
+.delete-btn {
+    background: #f44336;
+    color: white;
+}
+
+.delete-btn:hover {
+    background: #da190b;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+
+.error {
+    text-align: center;
+    padding: 20px;
+    color: #f44336;
+}
+
+.no-credentials {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
 }
 
 /* Project and Category Styles */

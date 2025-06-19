@@ -756,15 +756,54 @@ function handleAdminLogin(e) {
 // Initialize admin functionality
 document.addEventListener('DOMContentLoaded', function() {
     const adminLoginForm = document.getElementById('adminLoginForm');
+    const adminTab = document.querySelector('.admin-tab');
+    const adminLoginOverlay = document.getElementById('adminLoginOverlay');
+
+    // Check if user is already logged in as admin
+    if (localStorage.getItem('isAdmin') === 'true') {
+        if (adminTab) {
+            adminTab.style.display = 'block';
+        }
+    }
+
+    // Show admin login overlay when clicking admin tab while not logged in
+    if (adminTab) {
+        adminTab.addEventListener('click', function(e) {
+            if (localStorage.getItem('isAdmin') !== 'true') {
+                e.preventDefault();
+                if (adminLoginOverlay) {
+                    adminLoginOverlay.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    // Handle admin login
     if (adminLoginForm) {
         adminLoginForm.addEventListener('submit', handleAdminLogin);
     }
 
-    // Check if user is already logged in as admin
-    if (localStorage.getItem('isAdmin') === 'true') {
-        const adminTab = document.querySelector('.admin-tab');
-        if (adminTab) {
-            adminTab.style.display = 'block';
+    // Initialize tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            if (tabName) {
+                switchTab(tabName);
+            }
+        });
+    });
+
+    // Set initial tab
+    const initialTab = document.querySelector('.tab.active');
+    if (initialTab) {
+        const tabName = initialTab.getAttribute('data-tab');
+        if (tabName) {
+            switchTab(tabName);
         }
+    }
+
+    // Initialize credential loading for view tab
+    if (window.credentialManager) {
+        window.credentialManager.initialize();
     }
 });
