@@ -24,16 +24,32 @@ app.use(helmet({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// API routes with proper error handling
+// Log all API requests
+app.use('/api', (req, res, next) => {
+    console.log(`${req.method} ${req.path}`, {
+        headers: req.headers,
+        body: req.body,
+        query: req.query
+    });
+    next();
+});
+
+// API routes
 app.use('/api/credentials', credentialsRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Serve static files - ensure absolute paths
+// Serve static files
 app.use(express.static(path.join(__dirname)));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK' });
+});
+
+// Handle API errors
+app.use('/api', (err, req, res, next) => {
+    console.error('API Error:', err);
+    res.status(500).json({ error: err.message || 'Internal Server Error' });
 });
 
 // Error handling for API routes

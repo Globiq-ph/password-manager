@@ -2,24 +2,30 @@ class Api {
     constructor() {
         this.baseUrl = '/api';
         this.setHeaders();
+        this.ensureUserContext();
     }
 
     setHeaders() {
-        // Get user information
         const userId = localStorage.getItem('userId');
         const userEmail = localStorage.getItem('userEmail');
         const userName = localStorage.getItem('userName');
-
-        if (!userId || !userEmail) {
-            console.warn('User context not found, using default development credentials');
-        }
 
         this.headers = {
             'Content-Type': 'application/json',
             'X-User-Id': userId || 'dev-user',
             'X-User-Email': userEmail || 'dev@globiq.com',
-            'X-User-Name': userName || 'john doe'
+            'X-User-Name': userName || 'John Doe'
         };
+    }
+
+    ensureUserContext() {
+        if (!localStorage.getItem('userId')) {
+            localStorage.setItem('userId', 'dev-user');
+            localStorage.setItem('userEmail', 'dev@globiq.com');
+            localStorage.setItem('userName', 'John Doe');
+            localStorage.setItem('isAdmin', 'true');
+            this.setHeaders();
+        }
     }
 
     async saveCredential(credentialData) {
