@@ -1,15 +1,7 @@
 class Api {
     constructor() {
-        // In production, use the full URL
-        this.baseUrl = window.location.hostname === 'localhost' 
-            ? '/api'
-            : 'https://password-manager-p49n.onrender.com/api';
+        this.baseUrl = '/api';  // Use relative URL to automatically handle all environments
         this.setHeaders();
-        
-        // Log initialization in production for debugging
-        if (window.location.hostname !== 'localhost') {
-            console.log('API initialized with base URL:', this.baseUrl);
-        }
     }
 
     setHeaders() {

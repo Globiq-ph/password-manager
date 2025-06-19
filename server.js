@@ -12,26 +12,9 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 
 // Middleware setup
-app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-        ? 'https://password-manager-p49n.onrender.com'
-        : 'http://localhost:3000',
-    credentials: true
-}));
-
-// Security middleware
+app.use(cors());
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-            fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'"]
-        }
-    },
-    frameguard: { action: 'sameorigin' }
+    contentSecurityPolicy: false // Disabled for development
 }));
 
 // Parse JSON bodies with increased limit
