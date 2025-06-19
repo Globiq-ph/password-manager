@@ -3,131 +3,146 @@ const router = express.Router();
 const { encrypt, decrypt } = require('../utils/encryption');
 const Credential = require('../models/credential');
 
+// Middleware to validate credential input
+const validateCredential = (req, res, next) => {
+    const { project, category, name, username, password } = req.body;
+    
+    if (!project || !category || !name || !username || !password) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+
+    next();
+};
+
 // Get all credentials for the user
 router.get('/', async (req, res) => {
     try {
         const userId = req.header('X-User-Id');
         const userEmail = req.header('X-User-Email');
-
-        if (!userId || !userEmail || userId === 'null' || userEmail === 'null') {
-            return res.status(401).json({ message: 'Authentication required' });
+        
+        if (!userId || !userEmail) {
+            return res.status(401).json({ error: 'Authentication required' });
         }
 
-        const credentials = await Credential.find({
+        const query = {
             $or: [
-                { 'createdBy.userId': userId },
-                { isAdminOnly: false }
+                { userId },
+                { sharedWith: userEmail }
             ]
+        };
+
+        const credentials = await Credential.find(query);
+        
+        // Decrypt passwords for authorized credentials
+        const decryptedCredentials = credentials.map(cred => {
+            const decrypted = { ...cred.toObject() };
+            try {
+                if (cred.encryptedPassword) {
+                    decrypted.password = decrypt(cred.encryptedPassword);
+                }
+            } catch (error) {
+                console.error('Decryption error:', error);
+                decrypted.password = '**ENCRYPTION ERROR**';
+            }
+            delete decrypted.encryptedPassword;
+            return decrypted;
         });
 
-        return res.json(credentials);
+        res.json(decryptedCredentials);
     } catch (error) {
-        console.error('Error getting credentials:', error);
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Error fetching credentials:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 // Create new credential
-router.post('/', async (req, res) => {    try {
+router.post('/', validateCredential, async (req, res) => {
+    try {
+        const userId = req.header('X-User-Id');
+        const userName = req.header('X-User-Name');
+        
+        if (!userId || !userName) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const { project, category, name, username, password, status = 'active', isAdminOnly = false } = req.body;
+        
+        console.log('Creating new credential:', { project, category, name, username, password: '********', status, isAdminOnly });
         console.log('Creating new credential - Headers:', req.headers);
         console.log('Request body:', req.body);
 
-        const userId = req.header('X-User-Id');
-        const userName = req.header('X-User-Name');
-        const userEmail = req.header('X-User-Email');
-
-        // Check if any of the required headers are missing or set to 'null'
-        if (!userId || !userName || !userEmail || 
-            userId === 'null' || userName === 'null' || userEmail === 'null') {
-            console.log('Authentication failed:', { userId, userName, userEmail });
-            return res.status(401).json({ 
-                message: 'Authentication required',
-                details: 'Valid user ID, name, and email are required'
-            });
-        }
-
-        const { project, category, name, username, password, status, isAdminOnly } = req.body;
-
-        if (!project || !category || !name || !username || !password) {
-            console.log('Missing fields:', { project, category, name, username });
-            return res.status(400).json({
-                message: 'Missing required fields',
-                details: 'Project, category, name, username, and password are required'
-            });
-        }
-
-        // Encrypt password
         console.log('Encrypting password...');
         const encryptedPassword = encrypt(password);
         console.log('Password encrypted successfully');
 
+        console.log('Saving credential to database...');
         const credential = new Credential({
+            userId,
+            userName,
             project,
             category,
             name,
             username,
-            password: encryptedPassword,
-            status: status || 'active',
-            isAdminOnly: isAdminOnly || false,
-            createdBy: {
-                userId,
-                userName,
-                userEmail
-            }
+            encryptedPassword,
+            status,
+            isAdminOnly,
+            createdAt: new Date(),
+            updatedAt: new Date()
         });
 
-        console.log('Saving credential to database...');
         const savedCredential = await credential.save();
         console.log('Credential saved successfully:', savedCredential._id);
-        return res.status(201).json(savedCredential);
+
+        res.status(201).json({
+            message: 'Credential created successfully',
+            credential: {
+                ...savedCredential.toObject(),
+                password: '********'
+            }
+        });
     } catch (error) {
         console.error('Error creating credential:', error);
-        return res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
-        });
+        res.status(500).json({ error: 'Failed to create credential' });
     }
 });
 
 // Update credential
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateCredential, async (req, res) => {
     try {
         const userId = req.header('X-User-Id');
-        const userEmail = req.header('X-User-Email');
+        const { project, category, name, username, password, status, isAdminOnly } = req.body;
 
-        if (!userId || !userEmail) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-
-        const credential = await Credential.findById(req.params.id);
-
-        if (!credential) {
-            return res.status(404).json({ message: 'Credential not found' });
-        }
-
-        // Check if user has permission to update
-        if (credential.createdBy.userId !== userId && !credential.isAdminOnly) {
-            return res.status(403).json({ message: 'Permission denied' });
-        }
-
-        const updates = req.body;
+        const credential = await Credential.findOne({ _id: req.params.id, userId });
         
-        // If password is being updated, encrypt it
-        if (updates.password) {
-            updates.password = encrypt(updates.password);
+        if (!credential) {
+            return res.status(404).json({ error: 'Credential not found' });
         }
 
-        updates.updatedAt = Date.now();
+        credential.project = project;
+        credential.category = category;
+        credential.name = name;
+        credential.username = username;
+        credential.encryptedPassword = encrypt(password);
+        credential.status = status;
+        credential.isAdminOnly = isAdminOnly;
+        credential.updatedAt = new Date();
 
-        const updatedCredential = await Credential.findByIdAndUpdate(
-            req.params.id,
-            { $set: updates },
-            { new: true }
-        );
+        await credential.save();
 
-        res.json(updatedCredential);
+        res.json({
+            message: 'Credential updated successfully',
+            credential: {
+                ...credential.toObject(),
+                password: '********'
+            }
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Error updating credential:', error);
+        res.status(500).json({ error: 'Failed to update credential' });
     }
 });
 
@@ -135,27 +150,49 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const userId = req.header('X-User-Id');
-        const userEmail = req.header('X-User-Email');
-
-        if (!userId || !userEmail) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-
-        const credential = await Credential.findById(req.params.id);
-
+        const credential = await Credential.findOne({ _id: req.params.id, userId });
+        
         if (!credential) {
-            return res.status(404).json({ message: 'Credential not found' });
+            return res.status(404).json({ error: 'Credential not found' });
         }
 
-        // Check if user has permission to delete
-        if (credential.createdBy.userId !== userId && !credential.isAdminOnly) {
-            return res.status(403).json({ message: 'Permission denied' });
-        }
-
-        await Credential.findByIdAndDelete(req.params.id);
+        await credential.deleteOne();
         res.json({ message: 'Credential deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Error deleting credential:', error);
+        res.status(500).json({ error: 'Failed to delete credential' });
+    }
+});
+
+// Share credential
+router.post('/:id/share', async (req, res) => {
+    try {
+        const userId = req.header('X-User-Id');
+        const { shareWith } = req.body;
+
+        if (!shareWith) {
+            return res.status(400).json({ error: 'Email address required' });
+        }
+
+        const credential = await Credential.findOne({ _id: req.params.id, userId });
+        
+        if (!credential) {
+            return res.status(404).json({ error: 'Credential not found' });
+        }
+
+        if (!credential.sharedWith) {
+            credential.sharedWith = [];
+        }
+
+        if (!credential.sharedWith.includes(shareWith)) {
+            credential.sharedWith.push(shareWith);
+            await credential.save();
+        }
+
+        res.json({ message: 'Credential shared successfully' });
+    } catch (error) {
+        console.error('Error sharing credential:', error);
+        res.status(500).json({ error: 'Failed to share credential' });
     }
 });
 

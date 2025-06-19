@@ -1,49 +1,62 @@
 const mongoose = require('mongoose');
 
 const credentialSchema = new mongoose.Schema({
-    project: {
+    userId: {
+        type: String,
+        required: true,
+        index: true
+    },
+    userName: {
         type: String,
         required: true
+    },
+    project: {
+        type: String,
+        required: true,
+        trim: true
     },
     category: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
     name: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
     username: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
-    password: {
-        iv: String,
-        encryptedData: String,
-        tag: String
+    encryptedPassword: {
+        type: Object,
+        required: true
     },
     status: {
         type: String,
-        enum: ['active', 'expired', 'restricted'],
+        enum: ['active', 'inactive', 'expired'],
         default: 'active'
     },
     isAdminOnly: {
         type: Boolean,
         default: false
     },
-    createdBy: {
-        userId: {
-            type: String,
-            required: true
-        },
-        userName: {
-            type: String,
-            required: true
-        },
-        userEmail: {
-            type: String,
-            required: true
+    sharedWith: [{
+        type: String,
+        validate: {
+            validator: function(v) {
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+            },
+            message: props => `${props.value} is not a valid email address!`
         }
+    }],
+    expiresAt: {
+        type: Date
+    },
+    lastAccessed: {
+        type: Date
     },
     createdAt: {
         type: Date,
@@ -55,9 +68,13 @@ const credentialSchema = new mongoose.Schema({
     }
 });
 
-// Update the updatedAt timestamp before saving
+// Index for better search performance
+credentialSchema.index({ project: 1, category: 1, name: 1 });
+credentialSchema.index({ sharedWith: 1 });
+
+// Pre-save middleware to update the updatedAt timestamp
 credentialSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
+    this.updatedAt = new Date();
     next();
 });
 

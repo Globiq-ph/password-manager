@@ -18,17 +18,34 @@ const adminSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    role: {
+        type: String,
+        enum: ['admin', 'super_admin'],
+        default: 'admin'
+    },
+    lastLogin: {
+        type: Date,
+        default: Date.now
+    },
     isActive: {
         type: Boolean,
         default: true
-    },
-    createdAt: {
+    }
+});
+
+// Define Activity Log Schema
+const activityLogSchema = new mongoose.Schema({
+    userId: String,
+    action: String,
+    details: Object,
+    timestamp: {
         type: Date,
         default: Date.now
     }
 });
 
 const Admin = mongoose.model('Admin', adminSchema);
+const ActivityLog = mongoose.model('ActivityLog', activityLogSchema);
 
 // Import the Credential model
 const Credential = mongoose.model('Credential');
@@ -64,6 +81,51 @@ const adminAuthMiddleware = async (req, res, next) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// Log activity
+const logActivity = async (userId, action, details) => {
+    try {
+        await ActivityLog.create({ userId, action, details });
+    } catch (error) {
+        console.error('Error logging activity:', error);
+    }
+};
+
+// Get admin status
+router.get('/status', async (req, res) => {
+    try {
+        const userId = req.header('X-User-Id');
+        const admin = await Admin.findOne({ userId });
+        res.json({ 
+            isAdmin: !!admin && admin.isActive,
+            role: admin ? admin.role : null
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Admin logout
+router.post('/logout', adminAuthMiddleware, async (req, res) => {
+    try {
+        await logActivity(req.admin.userId, 'LOGOUT', { timestamp: new Date() });
+        res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Get activity logs
+router.get('/activity-logs', adminAuthMiddleware, async (req, res) => {
+    try {
+        const logs = await ActivityLog.find()
+            .sort({ timestamp: -1 })
+            .limit(100);
+        res.json(logs);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 // Get all credentials (admin only)
 router.get('/credentials', adminAuthMiddleware, async (req, res) => {
@@ -135,6 +197,37 @@ router.put('/:userId', adminAuthMiddleware, async (req, res) => {
         res.json(admin);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// Get admin users
+router.get('/users', adminAuthMiddleware, async (req, res) => {
+    try {
+        const admins = await Admin.find({}, { userId: 1, userName: 1, userEmail: 1, role: 1, lastLogin: 1, isActive: 1 });
+        res.json(admins);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Update admin user
+router.put('/users/:userId', adminAuthMiddleware, async (req, res) => {
+    try {
+        const { role, isActive } = req.body;
+        const admin = await Admin.findOneAndUpdate(
+            { userId: req.params.userId },
+            { role, isActive },
+            { new: true }
+        );
+        
+        await logActivity(req.admin.userId, 'UPDATE_ADMIN', {
+            targetUser: req.params.userId,
+            changes: { role, isActive }
+        });
+        
+        res.json(admin);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
