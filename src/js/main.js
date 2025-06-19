@@ -39,23 +39,29 @@ function initializeTabs() {
 
 async function checkAdminStatus() {
     try {
-        const response = await fetch('/api/admin/status');
-        const data = await response.json();
+        const data = await window.api.getAdminStatus();
+        
+        // Store admin status
+        localStorage.setItem('isAdmin', data.isAdmin);
+        if (data.role) {
+            localStorage.setItem('adminRole', data.role);
+        }
 
-        const adminTab = document.querySelector('[data-tab="adminPanel"]');
+        const adminTab = document.getElementById('adminTab');
         const adminFeatures = document.querySelectorAll('.admin-only');
 
         if (data.isAdmin) {
-            adminTab?.classList.remove('hidden');
-            adminFeatures.forEach(el => el.classList.remove('hidden'));
+            adminTab?.style.display = 'block';
+            adminFeatures.forEach(el => el.style.display = 'block');
 
             // Show super admin features if applicable
             if (data.role === 'super_admin') {
-                document.querySelectorAll('.super-admin-only').forEach(el => el.classList.remove('hidden'));
+                document.querySelectorAll('.super-admin-only')
+                    .forEach(el => el.style.display = 'block');
             }
         } else {
-            adminTab?.classList.add('hidden');
-            adminFeatures.forEach(el => el.classList.add('hidden'));
+            adminTab?.style.display = 'none';
+            adminFeatures.forEach(el => el.style.display = 'none');
         }
     } catch (error) {
         console.error('Error checking admin status:', error);

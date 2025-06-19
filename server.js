@@ -11,12 +11,25 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+// Middleware setup
+app.use(cors());
+app.use(helmet({
+    contentSecurityPolicy: false // Disabled for development
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 // Serve static files
 app.use(express.static(path.join(__dirname)));
 
-// Parse JSON bodies with increased limit - THIS MUST COME BEFORE OTHER MIDDLEWARE
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// API routes
+app.use('/api/credentials', credentialsRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
 
 // Trust proxy
 app.set('trust proxy', 1);

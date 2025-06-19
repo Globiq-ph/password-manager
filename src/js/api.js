@@ -2,7 +2,17 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
     ? 'http://localhost:3000/api'
     : 'https://password-manager-p49n.onrender.com/api';
 
-class API {
+class Api {
+    constructor() {
+        this.baseUrl = '/api';
+        this.headers = {
+            'Content-Type': 'application/json',
+            'X-User-Id': localStorage.getItem('userId') || '',
+            'X-User-Email': localStorage.getItem('userEmail') || '',
+            'X-User-Name': localStorage.getItem('userName') || ''
+        };
+    }
+
     static ensureUserContext() {
         console.log('Ensuring user context...');
           // Check for existing user context
@@ -25,39 +35,25 @@ class API {
             userName: localStorage.getItem('userName'),
             userEmail: localStorage.getItem('userEmail')
         });
-    }    static getHeaders() {
-        this.ensureUserContext();
-        
-        return {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-User-Id': localStorage.getItem('userId'),
-            'X-User-Name': localStorage.getItem('userName'),
-            'X-User-Email': localStorage.getItem('userEmail')
-        };
-    }    static async fetchWithAuth(endpoint, options = {}) {
-        const headers = this.getHeaders();
-        const url = `${API_BASE_URL}${endpoint}`;
-        
-        console.log(`Fetching ${options.method || 'GET'} ${url}`);
-        console.log('Headers:', headers);
-        if (options.body) console.log('Request body:', options.body);
-        
+    }
+
+    async request(endpoint, options = {}) {
         try {
+            const url = `${this.baseUrl}${endpoint}`;
             const response = await fetch(url, {
                 ...options,
-                headers: { ...headers, ...options.headers },
-                credentials: 'include'
+                headers: {
+                    ...this.headers,
+                    ...options.headers
+                }
             });
-            
-            const data = await response.json();
-            console.log('Response:', data);
-            
+
             if (!response.ok) {
-                throw new Error(data.message || data.error || 'API request failed');
+                const error = await response.json();
+                throw new Error(error.message || 'API request failed');
             }
-            
-            return data;
+
+            return await response.json();
         } catch (error) {
             console.error('API Error:', error);
             throw error;
@@ -65,29 +61,63 @@ class API {
     }
 
     // Credential endpoints
-    static async getCredentials() {
-        return this.fetchWithAuth('/credentials');
+    async getCredentials() {
+        return this.request('/credentials');
     }
 
-    static async createCredential(credentialData) {
-        return this.fetchWithAuth('/credentials', {
+    async createCredential(data) {
+        return this.request('/credentials', {
             method: 'POST',
-            body: JSON.stringify(credentialData)
+            body: JSON.stringify(data)
         });
     }
 
-    static async updateCredential(id, credentialData) {
-        return this.fetchWithAuth(`/credentials/${id}`, {
+    async updateCredential(id, data) {
+        return this.request(`/credentials/${id}`, {
             method: 'PUT',
-            body: JSON.stringify(credentialData)
+            body: JSON.stringify(data)
         });
     }
 
-    static async deleteCredential(id) {
-        return this.fetchWithAuth(`/credentials/${id}`, {
+    async deleteCredential(id) {
+        return this.request(`/credentials/${id}`, {
             method: 'DELETE'
+        });
+    }
+
+    async shareCredential(id, email) {
+        return this.request(`/credentials/${id}/share`, {
+            method: 'POST',
+            body: JSON.stringify({ shareWith: email })
+        });
+    }
+
+    // Admin endpoints
+    async getAdminStatus() {
+        return this.request('/admin/status');
+    }
+
+    async getActivityLogs() {
+        return this.request('/admin/activity-logs');
+    }
+
+    async getAdminUsers() {
+        return this.request('/admin/users');
+    }
+
+    async updateAdminUser(userId, data) {
+        return this.request(`/admin/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async adminLogout() {
+        return this.request('/admin/logout', {
+            method: 'POST'
         });
     }
 }
 
-window.api = API;
+// Create a global API instance
+window.api = new Api();

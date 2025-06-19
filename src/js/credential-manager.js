@@ -82,14 +82,9 @@ class CredentialManager {
         if (strength < 40) strengthText.textContent = 'Weak';
         else if (strength < 70) strengthText.textContent = 'Moderate';
         else strengthText.textContent = 'Strong';
-    }
-
-    async loadCredentials() {
+    }    async loadCredentials() {
         try {
-            const response = await fetch('/api/credentials');
-            if (!response.ok) throw new Error('Failed to fetch credentials');
-            
-            const credentials = await response.json();
+            const credentials = await window.api.getCredentials();
             this.categories = new Set(credentials.map(c => c.category));
             this.projects = new Set(credentials.map(c => c.project));
             
@@ -185,27 +180,13 @@ class CredentialManager {
             </div>
         `;
         return card;
-    }
-
-    async saveCredential() {
+    }    async saveCredential() {
         const form = document.getElementById('credentialForm');
         const formData = new FormData(form);
         const credential = Object.fromEntries(formData.entries());
 
         try {
-            const response = await fetch('/api/credentials', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(credential)
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to save credential');
-            }
-
+            await window.api.createCredential(credential);
             this.showSuccess('Credential saved successfully');
             form.reset();
             this.loadCredentials();
@@ -213,18 +194,11 @@ class CredentialManager {
             console.error('Error saving credential:', error);
             this.showError(error.message);
         }
-    }
-
-    async deleteCredential(id) {
+    }    async deleteCredential(id) {
         if (!confirm('Are you sure you want to delete this credential?')) return;
 
         try {
-            const response = await fetch(`/api/credentials/${id}`, {
-                method: 'DELETE'
-            });
-
-            if (!response.ok) throw new Error('Failed to delete credential');
-            
+            await window.api.deleteCredential(id);
             this.showSuccess('Credential deleted successfully');
             this.loadCredentials();
         } catch (error) {
