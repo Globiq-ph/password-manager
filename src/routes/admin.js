@@ -31,17 +31,23 @@ router.get('/stats', adminAuthMiddleware, async (req, res) => {
     }
 });
 
-// Create new admin
-router.post('/create', adminAuthMiddleware, async (req, res) => {
+// Add new admin
+router.post('/', adminAuthMiddleware, async (req, res) => {
     try {
-        const { username, password, email } = req.body;
-        const admin = new Admin({
-            username,
-            password, // Note: In production, hash the password before saving
-            email
-        });
+        const { userId, userName, userEmail } = req.body;
+        const admin = new Admin({ userId, userName, userEmail });
         await admin.save();
-        res.status(201).json({ message: 'Admin created successfully' });
+        res.status(201).json(admin);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// Delete admin
+router.delete('/:userId', adminAuthMiddleware, async (req, res) => {
+    try {
+        await Admin.findOneAndDelete({ userId: req.params.userId });
+        res.status(200).json({ message: 'Admin removed successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }

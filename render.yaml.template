@@ -8,15 +8,17 @@ services:
     region: singapore
     healthCheckPath: /api/health
     port: 3000
-    envVars:      - key: NODE_ENV
+    envVars:
+      - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
-      - key: MONGODB_URI
+        value: 3000      - key: MONGODB_URI
         value: mongodb+srv://vincentnbation1:Zp8hAe473OmcwjGS@cluster0.zu5suxb.mongodb.net/passwordmanager?retryWrites=true&w=majority
       - key: ENCRYPTION_KEY
-        value: Qw8rT2vB5nL6pZ1xJ7sM3eV0aH9bC4dF
-    headers:
+        value: Qw8rT2vB5nL6pZ1xJ7sM3eV0aH9bC4dFheaders:
       - path: /*
         name: X-Frame-Options
-        value: ALLOW-FROM https://teams.microsoft.com
+        value: SAMEORIGIN
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com;"

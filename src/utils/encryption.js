@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-256-bit-secret'.padEnd(32); // Must be 256 bits (32 characters)
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex'); // Must be 256 bits (32 characters)
 const IV_LENGTH = 16; // For AES, this is always 16
 const TAG_LENGTH = 16;
 

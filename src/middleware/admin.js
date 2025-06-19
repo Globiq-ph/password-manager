@@ -4,14 +4,21 @@ const adminAuthMiddleware = async (req, res, next) => {
     try {
         const userId = req.header('X-User-Id');
         const userEmail = req.header('X-User-Email');
+        const userName = req.header('X-User-Name');
 
         if (!userId || !userEmail) {
             return res.status(401).json({ message: 'Authentication required' });
         }
 
+        // For dev user
+        if (userId === 'dev-user' && userEmail === 'dev@globiq.com') {
+            req.admin = { userId, userName: 'John Doe', userEmail };
+            return next();
+        }
+
         // Check if user is an admin
         const admin = await Admin.findOne({ 
-            email: userEmail,
+            userEmail: userEmail,
             isActive: true 
         });
 

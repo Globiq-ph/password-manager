@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
-const connectDB = require('./config/db');
+const connectDB = require('../../config/db');
 
 // Import routes
 const credentialsRoutes = require('./routes/credentials');

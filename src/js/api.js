@@ -1,29 +1,29 @@
-const API_BASE_URL = 'https://password-manager-p49n.onrender.com/api';
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000/api'
+    : 'https://password-manager-p49n.onrender.com/api';
 
 class API {
     static ensureUserContext() {
         console.log('Ensuring user context...');
-        
-        // Check for existing user context
-        const userId = localStorage.getItem('teamsUserId');
-        const userName = localStorage.getItem('teamsUserName');
-        const userEmail = localStorage.getItem('teamsUserEmail');
+          // Check for existing user context
+        const userId = localStorage.getItem('userId');
+        const userName = localStorage.getItem('userName');
+        const userEmail = localStorage.getItem('userEmail');
         
         // If any user context is missing, set default values
         if (!userId || !userName || !userEmail) {
             console.log('Setting default user context');
-            localStorage.setItem('teamsUserId', 'dev-user');
-            localStorage.setItem('teamsUserName', 'john doe');
-            localStorage.setItem('teamsUserEmail', 'dev@globiq.com');
+            localStorage.setItem('userId', 'dev-user');
+            localStorage.setItem('userName', 'john doe');
+            localStorage.setItem('userEmail', 'dev@globiq.com');
             localStorage.setItem('isAdmin', 'true');
         }
         
         // Verify user context was set
-        const verifyUserId = localStorage.getItem('teamsUserId');
-        console.log('Current user context:', {
-            userId: verifyUserId,
-            userName: localStorage.getItem('teamsUserName'),
-            userEmail: localStorage.getItem('teamsUserEmail')
+        const verifyUserId = localStorage.getItem('userId');
+        console.log('Current user context:', {            userId: verifyUserId,
+            userName: localStorage.getItem('userName'),
+            userEmail: localStorage.getItem('userEmail')
         });
     }
 
