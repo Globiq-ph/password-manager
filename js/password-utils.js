@@ -50,6 +50,11 @@ function updatePasswordStrength(password) {
     const strengthBar = document.querySelector('.password-strength-bar');
     const strengthText = document.getElementById('passwordStrengthText');
     
+    if (!strengthBar || !strengthText) return;
+    
+    strengthBar.style.width = strength + '%';
+    const strengthText = document.getElementById('passwordStrengthText');
+    
     // Update the strength bar
     strengthBar.style.width = `${strength}%`;
     
