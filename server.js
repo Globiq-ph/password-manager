@@ -5,6 +5,10 @@ const helmet = require('helmet');
 const path = require('path');
 const connectDB = require('./config/db');
 
+// Import routes
+const credentialsRoutes = require('./routes/credentials');
+const adminRoutes = require('./routes/admin');
+
 const app = express();
 
 // Parse JSON bodies with increased limit - THIS MUST COME BEFORE OTHER MIDDLEWARE
@@ -76,7 +80,8 @@ connectDB().catch(err => {
 app.use(express.static(path.join(__dirname)));
 
 // Routes
-app.use('/api/credentials', require('./routes/credentials'));
+app.use('/api/credentials', credentialsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
