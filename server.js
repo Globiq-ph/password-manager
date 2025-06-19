@@ -46,13 +46,8 @@ app.use((req, res, next) => {
     next();
 });
 
-// CORS configuration
-app.use(cors({
-    origin: '*', // In production, you should specify your actual domain
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'X-User-Id', 'X-User-Name', 'X-User-Email'],
-    credentials: true
-}));
+// Enable CORS for all routes
+app.use(cors());
     origin: [
         'https://password-manager-p49n.onrender.com',
         'http://localhost:3000',
