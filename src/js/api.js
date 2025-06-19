@@ -26,25 +26,27 @@ class Api {
             localStorage.setItem('isAdmin', 'true');
             this.setHeaders();
         }
-    }
-
-    async saveCredential(credentialData) {
+    }    async saveCredential(credentialData) {
         try {
+            console.log('Saving credential:', credentialData);
             const response = await fetch(`${this.baseUrl}/credentials`, {
                 method: 'POST',
                 headers: this.headers,
                 body: JSON.stringify(credentialData)
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to save credential');
+                console.error('Server error:', data);
+                throw new Error(data.error || 'Failed to save credential');
             }
 
-            return await response.json();
+            console.log('Credential saved successfully:', data);
+            return data;
         } catch (error) {
             console.error('Error saving credential:', error);
-            throw error;
+            throw new Error(error.message || 'Failed to save credential');
         }
     }
 

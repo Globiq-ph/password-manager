@@ -31,7 +31,7 @@ const ensureAuthenticated = (req, res, next) => {
         });
     }
 
-    req.user = { userId, userEmail, userName };
+    req.user = { userId, userEmail, userName: userName || 'Unknown User' };
     next();
 };
 
@@ -71,28 +71,29 @@ router.get('/', ensureAuthenticated, async (req, res) => {
     }
 });
 
-// Create new credential
+// Save new credential
 router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
     try {
-        const { userId } = req.user;
+        const { userId, userName } = req.user;
         const { project, category, name, username, password, notes } = req.body;
 
-        // Encrypt sensitive data
+        // Encrypt the password
         const encryptedPassword = await encrypt(password);
 
         const credential = new Credential({
             userId,
+            userName,
             project,
             category,
             name,
             username,
-            password: encryptedPassword,
-            notes
+            encryptedPassword,
+            notes,
+            status: 'active'
         });
 
         await credential.save();
 
-        // Return success without sensitive data
         res.status(201).json({
             message: 'Credential saved successfully',
             credential: {
@@ -100,13 +101,15 @@ router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
                 project: credential.project,
                 category: credential.category,
                 name: credential.name,
-                username: credential.username,
-                createdAt: credential.createdAt
+                username: credential.username
             }
         });
     } catch (error) {
         console.error('Error saving credential:', error);
-        res.status(500).json({ error: 'Error saving credential' });
+        res.status(500).json({ 
+            error: 'Error saving credential',
+            details: error.message
+        });
     }
 });
 
