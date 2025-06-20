@@ -7,6 +7,8 @@ class CredentialManager {
         this.categories = new Set();
         this.projects = new Set();
         this.setupAdminFeatures();
+        // Track pending sensitive action
+        this.pendingSensitiveAction = null;
     }
 
     checkAdminSession() {
@@ -25,8 +27,9 @@ class CredentialManager {
             this.loadCredentials();
         } else {
             if (loginBox) loginBox.style.display = '';
-            if (passwordList) passwordList.style.display = 'none';
+            if (passwordList) passwordList.style.display = '';
             if (logoutBox) logoutBox.style.display = 'none';
+            this.loadCredentials();
         }
     }
 
@@ -169,74 +172,51 @@ class CredentialManager {
     displayCredentials(credentials) {
         const container = document.getElementById('passwordList');
         if (!container) return;
-        if (!this.isAdmin) {
-            container.innerHTML = '';
-            return;
-        }
         if (!credentials || credentials.length === 0) {
             container.innerHTML = '<p class="no-credentials">No credentials found</p>';
             return;
         }
-        const table = document.createElement('table');
-        table.className = 'credentials-table modern-table';
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>Project</th>
-                    <th>Category</th>
-                    <th>Name</th>
-                    <th>Username</th>
-                    <th>Password</th>
-                    <th>Date Added</th>
-                    <th>Image</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${credentials.map((cred, idx) => `
-                    <tr>
-                        <td>${this.escapeHtml(cred.project)}</td>
-                        <td>${this.escapeHtml(cred.category)}</td>
-                        <td>${this.escapeHtml(cred.name)}</td>
-                        <td>${this.escapeHtml(cred.userName || cred.username)}</td>
-                        <td class="pw-cell">
-                            <span id="pw-mask-${idx}" class="pw-mask">********</span>
-                            <span id="pw-plain-${idx}" class="pw-plain" style="display:none;">${this.escapeHtml(cred.password)}</span>
-                            <button class="view-pw-btn" data-idx="${idx}" aria-label="Show/Hide Password" title="Show/Hide Password">
-                                <span class="eye-icon" id="eye-icon-${idx}">&#128065;</span>
-                            </button>
-                        </td>
-                        <td>${cred.createdAt ? new Date(cred.createdAt).toLocaleString() : ''}</td>
-                        <td>
-                            ${cred.image ? `<img src="${cred.image}" alt="Credential Image" class="credential-img" style="max-width:48px;max-height:48px;border-radius:6px;box-shadow:0 1px 4px #0002;" />` : ''}
-                        </td>
-                        <td>
-                            <button class="copy-btn" data-value="${this.escapeHtml(cred.userName || cred.username)}" title="Copy Username">📋</button>
-                            <button class="copy-btn" data-value="${this.escapeHtml(cred.password)}" title="Copy Password">🔑</button>
-                            <button class="delete-btn" data-id="${cred._id}" title="Delete">🗑️</button>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        `;
+        // Card/list layout
+        container.innerHTML = `<div class="credentials-grid">
+            ${credentials.map((cred, idx) => `
+                <div class="credential-card">
+                    <div class="credential-header">
+                        <span class="credential-title">${this.escapeHtml(cred.name)}</span>
+                        <span class="credential-date" title="Saved on ${cred.createdAt ? new Date(cred.createdAt).toLocaleString() : ''}">
+                            <i class="fas fa-calendar-alt"></i> ${cred.createdAt ? this.formatDate(cred.createdAt) : ''}
+                        </span>
+                    </div>
+                    <div class="credential-field"><label>Project:</label> <span>${this.escapeHtml(cred.project)}</span></div>
+                    <div class="credential-field"><label>Category:</label> <span>${this.escapeHtml(cred.category)}</span></div>
+                    <div class="credential-field"><label>Username:</label> <span>${this.escapeHtml(cred.userName || cred.username)}</span></div>
+                    <div class="credential-field"><label>Password:</label> <span>
+                        <span id="pw-mask-${idx}" class="pw-mask">${this.isAdmin ? '********' : '<i class=\'fas fa-lock\' title=\'Hidden\'></i>'}</span>
+                        <span id="pw-plain-${idx}" class="pw-plain" style="display:none;">${this.escapeHtml(cred.password)}</span>
+                        <button class="view-pw-btn" data-idx="${idx}" aria-label="Show/Hide Password" title="Show/Hide Password">
+                            <span class="eye-icon" id="eye-icon-${idx}">&#128065;</span>
+                        </button>
+                    </span></div>
+                    <div class="credential-field"><label>Notes:</label> <span>${this.escapeHtml(cred.notes || '')}</span></div>
+                    <div class="credential-field">
+                        ${cred.image ? `<img src="${cred.image}" alt="Credential Image" class="credential-img" style="max-width:48px;max-height:48px;border-radius:6px;box-shadow:0 1px 4px #0002;" />` : ''}
+                    </div>
+                    <div class="credential-actions">
+                        <button class="copy-btn" data-value="${this.escapeHtml(cred.userName || cred.username)}" title="Copy Username">📋</button>
+                        <button class="copy-btn" data-value="${this.escapeHtml(cred.password)}" title="Copy Password">🔑</button>
+                        <button class="delete-btn" data-id="${cred._id}" title="Delete" ${!this.isAdmin ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>🗑️</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>`;
 
         // Add event listeners for copy, view, and delete buttons
-        table.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('copy-btn')) {
-                await this.copyToClipboard(e.target.dataset.value);
-            } else if (e.target.classList.contains('delete-btn')) {
-                const id = e.target.dataset.id;
-                if (confirm('Are you sure you want to delete this credential?')) {
-                    try {
-                        await this.api.deleteCredential(id);
-                        this.showSuccess('Credential deleted successfully');
-                        this.loadCredentials();
-                    } catch (error) {
-                        this.showError('Failed to delete credential');
-                    }
+        container.querySelectorAll('.view-pw-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = btn.dataset.idx;
+                if (!this.isAdmin) {
+                    this.showAdminLoginModal('view');
+                    return;
                 }
-            } else if (e.target.classList.contains('view-pw-btn')) {
-                const idx = e.target.dataset.idx;
                 const mask = document.getElementById(`pw-mask-${idx}`);
                 const plain = document.getElementById(`pw-plain-${idx}`);
                 if (mask && plain) {
@@ -248,10 +228,30 @@ class CredentialManager {
                         plain.style.display = '';
                     }
                 }
-            }
+            });
         });
-        container.innerHTML = '';
-        container.appendChild(table);
+        container.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (!this.isAdmin) {
+                    this.showAdminLoginModal('delete', btn.dataset.id);
+                    return;
+                }
+                const id = btn.dataset.id;
+                if (confirm('Are you sure you want to delete this credential?')) {
+                    this.api.deleteCredential(id).then(() => {
+                        this.showSuccess('Credential deleted successfully');
+                        this.loadCredentials();
+                    }).catch(() => {
+                        this.showError('Failed to delete credential');
+                    });
+                }
+            });
+        });
+        container.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                await this.copyToClipboard(btn.dataset.value);
+            });
+        });
     }
 
     async saveCredential() {
@@ -262,7 +262,8 @@ class CredentialManager {
                 name: document.getElementById('name').value,
                 username: document.getElementById('username').value,
                 password: document.getElementById('password').value,
-                notes: document.getElementById('notes').value || ''
+                notes: document.getElementById('notes').value || '',
+                createdAt: new Date().toISOString() // Store timestamp
             };
             // Handle image
             const imageInput = document.getElementById('image');
@@ -409,6 +410,18 @@ class CredentialManager {
             const text = card.textContent.toLowerCase();
             card.style.display = text.includes(searchLower) ? '' : 'none';
         });
+    }
+
+    formatDate(dateStr) {
+        const d = new Date(dateStr);
+        return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    showAdminLoginModal(action, id) {
+        // Show the admin login modal and store the pending action
+        const overlay = document.getElementById('adminLoginOverlay');
+        if (overlay) overlay.style.display = 'flex';
+        this.pendingSensitiveAction = { action, id };
     }
 }
 
