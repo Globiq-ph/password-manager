@@ -12,21 +12,32 @@ class Api {
 
         this.headers = {
             'Content-Type': 'application/json',
-            'X-User-Id': userId || 'dev-user',
-            'X-User-Email': userEmail || 'dev@globiq.com',
-            'X-User-Name': userName || 'John Doe'
         };
+        if (userId && userEmail && userName) {
+            this.headers['X-User-Id'] = userId;
+            this.headers['X-User-Email'] = userEmail;
+            this.headers['X-User-Name'] = userName;
+        }
     }
 
     ensureUserContext() {
-        if (!localStorage.getItem('userId')) {
+        // Only set default user context if not admin
+        if (!localStorage.getItem('userId') && sessionStorage.getItem('isAdmin') !== 'true') {
             localStorage.setItem('userId', 'dev-user');
             localStorage.setItem('userEmail', 'dev@globiq.com');
-            localStorage.setItem('userName', 'John Doe');
-            localStorage.setItem('isAdmin', 'true');
+            localStorage.setItem('userName', 'Regular User');
             this.setHeaders();
         }
-    }    async saveCredential(credentialData) {
+    }
+
+    clearUserContext() {
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userName');
+        this.setHeaders();
+    }
+
+    async saveCredential(credentialData) {
         try {
             console.log('Saving credential:', credentialData);
             const response = await fetch(`${this.baseUrl}/credentials`, {
