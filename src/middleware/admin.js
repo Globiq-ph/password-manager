@@ -10,12 +10,6 @@ const adminAuthMiddleware = async (req, res, next) => {
             return res.status(401).json({ message: 'Authentication required' });
         }
 
-        // For dev user
-        if (userId === 'dev-user' && userEmail === 'dev@globiq.com') {
-            req.admin = { userId, userName: 'John Doe', userEmail };
-            return next();
-        }
-
         // Check if user is an admin
         const admin = await Admin.findOne({ 
             userEmail: userEmail,
@@ -26,10 +20,10 @@ const adminAuthMiddleware = async (req, res, next) => {
             return res.status(403).json({ message: 'Admin access required' });
         }
 
-        req.admin = admin;
+        req.admin = { userId, userName, userEmail };
         next();
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 

@@ -1,7 +1,6 @@
 class Api {
     constructor() {
         this.baseUrl = '/api';
-        this.ensureUserContext();
     }
 
     _getHeaders(extra = {}) {
@@ -16,21 +15,6 @@ class Api {
             headers['X-User-Name'] = userName;
         }
         return { ...headers, ...extra };
-    }
-
-    ensureUserContext() {
-        // Only set default user context if not admin
-        if (!localStorage.getItem('userId') && sessionStorage.getItem('isAdmin') !== 'true') {
-            localStorage.setItem('userId', 'dev-user');
-            localStorage.setItem('userEmail', 'dev@globiq.com');
-            localStorage.setItem('userName', 'Regular User');
-        }
-    }
-
-    clearUserContext() {
-        localStorage.removeItem('userId');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('userName');
     }
 
     async request(endpoint, options = {}) {

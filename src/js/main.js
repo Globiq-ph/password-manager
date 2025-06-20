@@ -3,9 +3,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Initialize API
     window.api = new Api();
     
-    // Ensure user context
-    Api.ensureUserContext();
-    
     // Initialize tabs
     initializeTabs();
     

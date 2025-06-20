@@ -108,10 +108,6 @@ class CredentialManager {
                     const data = await response.json();
                     if (response.ok && data.success) {
                         sessionStorage.setItem('isAdmin', 'true');
-                        // Clear user context for admin
-                        if (window.api && typeof window.api.clearUserContext === 'function') {
-                            window.api.clearUserContext();
-                        }
                         this.isAdmin = true;
                         this.toggleAdminUI();
                         this.showSuccess('Admin login successful!');
@@ -137,10 +133,6 @@ class CredentialManager {
                     await fetch('/api/credentials/admin/logout', { method: 'POST' });
                 } catch (e) {}
                 sessionStorage.removeItem('isAdmin');
-                // Restore user context for regular user
-                if (window.api && typeof window.api.ensureUserContext === 'function') {
-                    window.api.ensureUserContext();
-                }
                 this.isAdmin = false;
                 this.toggleAdminUI();
                 this.showSuccess('Logged out as admin.');
