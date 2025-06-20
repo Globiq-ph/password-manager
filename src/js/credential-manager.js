@@ -82,7 +82,7 @@ class CredentialManager {
     }
 
     displayCredentials(credentials) {
-        const container = document.getElementById('passwordList'); // CHANGED from 'credentialsContainer' to 'passwordList'
+        const container = document.getElementById('passwordList');
         if (!container) return;
 
         if (!credentials || credentials.length === 0) {
@@ -99,19 +99,25 @@ class CredentialManager {
                     <th>Category</th>
                     <th>Name</th>
                     <th>Username</th>
+                    <th>Password</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                ${credentials.map(cred => `
+                ${credentials.map((cred, idx) => `
                     <tr>
                         <td>${this.escapeHtml(cred.project)}</td>
                         <td>${this.escapeHtml(cred.category)}</td>
                         <td>${this.escapeHtml(cred.name)}</td>
                         <td>${this.escapeHtml(cred.username)}</td>
                         <td>
+                            <span id="pw-mask-${idx}" class="pw-mask">********</span>
+                            <span id="pw-plain-${idx}" class="pw-plain" style="display:none;">${this.escapeHtml(cred.password)}</span>
+                        </td>
+                        <td>
                             <button class="copy-btn" data-value="${this.escapeHtml(cred.username)}">Copy Username</button>
                             <button class="copy-btn" data-value="${this.escapeHtml(cred.password)}">Copy Password</button>
+                            <button class="view-pw-btn" data-idx="${idx}">View Password</button>
                             <button class="delete-btn" data-id="${cred._id}">Delete</button>
                         </td>
                     </tr>
@@ -119,18 +125,33 @@ class CredentialManager {
             </tbody>
         `;
 
-        // Add event listeners for copy and delete buttons
+        // Add event listeners for copy, view, and delete buttons
         table.addEventListener('click', async (e) => {
             if (e.target.classList.contains('copy-btn')) {
                 await this.copyToClipboard(e.target.dataset.value);
             } else if (e.target.classList.contains('delete-btn')) {
                 await this.deleteCredential(e.target.dataset.id);
+            } else if (e.target.classList.contains('view-pw-btn')) {
+                const idx = e.target.dataset.idx;
+                const mask = document.getElementById(`pw-mask-${idx}`);
+                const plain = document.getElementById(`pw-plain-${idx}`);
+                if (mask.style.display === 'none') {
+                    mask.style.display = '';
+                    plain.style.display = 'none';
+                    e.target.textContent = 'View Password';
+                } else {
+                    mask.style.display = 'none';
+                    plain.style.display = '';
+                    e.target.textContent = 'Hide Password';
+                }
             }
         });
 
         container.innerHTML = '';
         container.appendChild(table);
-    }    async saveCredential() {
+    }
+
+    async saveCredential() {
         try {
             const formData = {
                 project: document.getElementById('project').value,
@@ -155,7 +176,7 @@ class CredentialManager {
             if (!formData.project || !formData.category || !formData.name || !formData.username || !formData.password) {
                 throw new Error('Please fill in all required fields');
             }
-            const result = await window.api.saveCredential(formData);
+            // Only call one save method to avoid duplicates
             await this.api.saveCredential(formData);
             document.getElementById('credentialForm').reset();
             document.getElementById('imagePreview').innerHTML = '';
