@@ -10,7 +10,6 @@ class CredentialManager {
     }
 
     checkAdminSession() {
-        // Check if admin is logged in (sessionStorage for simplicity)
         this.isAdmin = sessionStorage.getItem('isAdmin') === 'true';
         this.toggleAdminUI();
     }
@@ -18,13 +17,16 @@ class CredentialManager {
     toggleAdminUI() {
         const loginBox = document.getElementById('adminLoginBox');
         const passwordList = document.getElementById('passwordList');
+        const logoutBox = document.getElementById('adminLogoutBox');
         if (this.isAdmin) {
             if (loginBox) loginBox.style.display = 'none';
             if (passwordList) passwordList.style.display = '';
+            if (logoutBox) logoutBox.style.display = '';
             this.loadCredentials();
         } else {
             if (loginBox) loginBox.style.display = '';
             if (passwordList) passwordList.style.display = 'none';
+            if (logoutBox) logoutBox.style.display = 'none';
         }
     }
 
@@ -95,7 +97,7 @@ class CredentialManager {
         if (adminLoginForm) {
             adminLoginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const username = document.getElementById('adminUsername').value;
+                const username = document.getElementById('adminUsername').value.trim();
                 const password = document.getElementById('adminPassword').value;
                 if (username === 'admin123' && password === 'adminpassword') {
                     sessionStorage.setItem('isAdmin', 'true');
@@ -103,8 +105,21 @@ class CredentialManager {
                     this.toggleAdminUI();
                     this.showSuccess('Admin login successful!');
                 } else {
+                    sessionStorage.removeItem('isAdmin');
+                    this.isAdmin = false;
+                    this.toggleAdminUI();
                     this.showError('Invalid admin credentials.');
                 }
+            });
+        }
+        // Admin logout button
+        const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+        if (adminLogoutBtn) {
+            adminLogoutBtn.addEventListener('click', () => {
+                sessionStorage.removeItem('isAdmin');
+                this.isAdmin = false;
+                this.toggleAdminUI();
+                this.showSuccess('Logged out as admin.');
             });
         }
     }
