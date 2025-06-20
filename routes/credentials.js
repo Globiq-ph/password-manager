@@ -80,6 +80,7 @@ router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
         }
         const encryptedPassword = await encrypt(password);
         const credential = new Credential({
+            userId: req.user.userId, // Ensure userId is set for query matching
             project,
             category,
             name,
