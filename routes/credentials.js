@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { encrypt, decrypt } = require('../utils/encryption');
 const Credential = require('../models/credential');
+const mongoose = require('mongoose');
 
 // Middleware to validate credential input
 const validateCredential = (req, res, next) => {
@@ -34,6 +35,17 @@ const ensureAuthenticated = (req, res, next) => {
     req.user = { userId, userEmail, userName: userName || 'Unknown User' };
     next();
 };
+
+// Debug: Log current database and collection name
+router.get('/debug/dbinfo', async (req, res) => {
+    try {
+        const dbName = mongoose.connection.name;
+        const collectionName = Credential.collection.name;
+        res.json({ dbName, collectionName });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // Get all credentials for the user (TEMP: return all for debugging)
 router.get('/', ensureAuthenticated, async (req, res) => {
