@@ -25,8 +25,9 @@ class CredentialManager {
             });
         }
 
-        // Image preview
+        // Image preview and Remove QR
         const imageInput = document.getElementById('image');
+        const removeQRBtn = document.getElementById('removeQRBtn');
         if (imageInput) {
             imageInput.addEventListener('change', function() {
                 const preview = document.getElementById('imagePreview');
@@ -40,9 +41,19 @@ class CredentialManager {
                         img.style.maxHeight = '120px';
                         img.style.borderRadius = '8px';
                         preview.appendChild(img);
+                        if (removeQRBtn) removeQRBtn.style.display = 'inline-block';
                     };
                     reader.readAsDataURL(this.files[0]);
+                } else {
+                    if (removeQRBtn) removeQRBtn.style.display = 'none';
                 }
+            });
+        }
+        if (removeQRBtn) {
+            removeQRBtn.addEventListener('click', function() {
+                imageInput.value = '';
+                document.getElementById('imagePreview').innerHTML = '';
+                removeQRBtn.style.display = 'none';
             });
         }
 
@@ -172,6 +183,11 @@ class CredentialManager {
         </div>`;
         // Add event listeners for copy, view, and delete buttons
         container.querySelectorAll('.view-pw-btn').forEach(btn => {
+            if (!this.isAdmin) {
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = '';
+            }
             btn.addEventListener('click', (e) => {
                 const idx = btn.dataset.idx;
                 if (!this.isAdmin) {
@@ -192,6 +208,11 @@ class CredentialManager {
             });
         });
         container.querySelectorAll('.delete-btn').forEach(btn => {
+            if (!this.isAdmin) {
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = '';
+            }
             btn.addEventListener('click', (e) => {
                 if (!this.isAdmin) {
                     this.showAdminLoginModal('delete', btn.dataset.id);
@@ -252,6 +273,8 @@ class CredentialManager {
             await this.api.saveCredential(formData);
             document.getElementById('credentialForm').reset();
             document.getElementById('imagePreview').innerHTML = '';
+            const removeQRBtn = document.getElementById('removeQRBtn');
+            if (removeQRBtn) removeQRBtn.style.display = 'none';
             await this.loadCredentials();
             this.showSuccess('Credential saved successfully');
         } catch (error) {
