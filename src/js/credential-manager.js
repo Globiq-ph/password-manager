@@ -1,19 +1,19 @@
 class CredentialManager {
     constructor() {
         this.api = new Api();
-        this.isAdmin = false;
+        this.isAdmin = this.getAdminState();
         this.initializeEventListeners();
-        this.checkAdminSession();
-        this.categories = new Set();
-        this.projects = new Set();
-        this.setupAdminFeatures();
-        // Track pending sensitive action
+        this.toggleAdminUI();
         this.pendingSensitiveAction = null;
     }
 
-    checkAdminSession() {
-        this.isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-        this.toggleAdminUI();
+    getAdminState() {
+        // Use localStorage for persistence
+        return localStorage.getItem('isAdmin') === 'true';
+    }
+    setAdminState(isAdmin) {
+        localStorage.setItem('isAdmin', isAdmin ? 'true' : 'false');
+        this.isAdmin = isAdmin;
     }
 
     toggleAdminUI() {
@@ -22,30 +22,12 @@ class CredentialManager {
         const logoutBox = document.getElementById('adminLogoutBox');
         if (this.isAdmin) {
             if (loginBox) loginBox.style.display = 'none';
-            if (passwordList) passwordList.style.display = '';
             if (logoutBox) logoutBox.style.display = '';
-            this.loadCredentials();
         } else {
             if (loginBox) loginBox.style.display = '';
-            if (passwordList) passwordList.style.display = '';
             if (logoutBox) logoutBox.style.display = 'none';
-            this.loadCredentials();
         }
-    }
-
-    async setupAdminFeatures() {
-        try {
-            const isAdmin = await this.api.isAdmin();
-            const adminTab = document.getElementById('adminTab');
-            if (adminTab) {
-                adminTab.style.display = isAdmin ? 'block' : 'none';
-            }
-            if (isAdmin) {
-                this.loadAdminDashboard();
-            }
-        } catch (error) {
-            console.error('Error setting up admin features:', error);
-        }
+        this.loadCredentials();
     }
 
     initializeEventListeners() {
@@ -102,40 +84,34 @@ class CredentialManager {
                 e.preventDefault();
                 const username = document.getElementById('adminUsername').value.trim();
                 const password = document.getElementById('adminPassword').value;
-                try {
-                    const response = await fetch('/api/credentials/admin/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password })
-                    });
-                    const data = await response.json();
-                    if (response.ok && data.success) {
-                        sessionStorage.setItem('isAdmin', 'true');
-                        this.isAdmin = true;
-                        this.toggleAdminUI();
-                        this.showSuccess('Admin login successful!');
-                        // Switch to View Credentials tab after admin login
-                        const tabs = document.querySelectorAll('.tab');
-                        const tabContents = document.querySelectorAll('.tab-content');
-                        tabs.forEach(t => t.classList.remove('active'));
-                        tabContents.forEach(c => c.classList.remove('active'));
-                        const viewTab = document.querySelector('.tab[data-tab="viewCredentials"]');
-                        const viewContent = document.getElementById('viewCredentials');
-                        if (viewTab && viewContent) {
-                            viewTab.classList.add('active');
-                            viewContent.classList.add('active');
-                        }
-                    } else {
-                        sessionStorage.removeItem('isAdmin');
-                        this.isAdmin = false;
-                        this.toggleAdminUI();
-                        this.showError(data.message || 'Invalid admin credentials.');
-                    }
-                } catch (err) {
-                    sessionStorage.removeItem('isAdmin');
-                    this.isAdmin = false;
+                if (username === 'admin123' && password === 'adminpassword') {
+                    this.setAdminState(true);
                     this.toggleAdminUI();
-                    this.showError('Login failed. Please try again.');
+                    this.showSuccess('Admin login successful!');
+                    // Hide modal
+                    const overlay = document.getElementById('adminLoginOverlay');
+                    if (overlay) overlay.style.display = 'none';
+                    // If there was a pending sensitive action, perform it now
+                    if (this.pendingSensitiveAction) {
+                        if (this.pendingSensitiveAction.action === 'view') {
+                            // Reveal all passwords
+                            document.querySelectorAll('.pw-mask').forEach(el => el.style.display = 'none');
+                            document.querySelectorAll('.pw-plain').forEach(el => el.style.display = '');
+                        } else if (this.pendingSensitiveAction.action === 'delete') {
+                            const id = this.pendingSensitiveAction.id;
+                            this.api.deleteCredential(id).then(() => {
+                                this.showSuccess('Credential deleted successfully');
+                                this.loadCredentials();
+                            }).catch(() => {
+                                this.showError('Failed to delete credential');
+                            });
+                        }
+                        this.pendingSensitiveAction = null;
+                    }
+                } else {
+                    this.setAdminState(false);
+                    this.toggleAdminUI();
+                    this.showError('Invalid admin credentials.');
                 }
             });
         }
@@ -143,11 +119,7 @@ class CredentialManager {
         const adminLogoutBtn = document.getElementById('adminLogoutBtn');
         if (adminLogoutBtn) {
             adminLogoutBtn.addEventListener('click', async () => {
-                try {
-                    await fetch('/api/credentials/admin/logout', { method: 'POST' });
-                } catch (e) {}
-                sessionStorage.removeItem('isAdmin');
-                this.isAdmin = false;
+                this.setAdminState(false);
                 this.toggleAdminUI();
                 this.showSuccess('Logged out as admin.');
             });
@@ -155,17 +127,12 @@ class CredentialManager {
     }
 
     async loadCredentials() {
-        if (!this.isAdmin) return; // Only admin can view
         try {
             const credentials = await this.api.getCredentials();
             this.displayCredentials(credentials);
         } catch (error) {
             console.error('Error loading credentials:', error);
-            if (error.message && error.message.includes('Failed to fetch credentials')) {
-                this.showError('Admin access denied. Please check your credentials.');
-            } else {
-                this.showError('Failed to load credentials');
-            }
+            this.showError('Failed to load credentials');
         }
     }
 
@@ -176,7 +143,6 @@ class CredentialManager {
             container.innerHTML = '<p class="no-credentials">No credentials found</p>';
             return;
         }
-        // Card/list layout
         container.innerHTML = `<div class="credentials-grid">
             ${credentials.map((cred, idx) => `
                 <div class="credential-card">
@@ -190,8 +156,8 @@ class CredentialManager {
                     <div class="credential-field"><label>Category:</label> <span>${this.escapeHtml(cred.category)}</span></div>
                     <div class="credential-field"><label>Username:</label> <span>${this.escapeHtml(cred.userName || cred.username)}</span></div>
                     <div class="credential-field"><label>Password:</label> <span>
-                        <span id="pw-mask-${idx}" class="pw-mask">${this.isAdmin ? '********' : '<i class=\'fas fa-lock\' title=\'Hidden\'></i>'}</span>
-                        <span id="pw-plain-${idx}" class="pw-plain" style="display:none;">${this.escapeHtml(cred.password)}</span>
+                        <span id="pw-mask-${idx}" class="pw-mask" style="${this.isAdmin ? 'display:none;' : ''}">${this.isAdmin ? '' : '<i class=\'fas fa-lock\' title=\'Hidden\'></i>'}</span>
+                        <span id="pw-plain-${idx}" class="pw-plain" style="${this.isAdmin ? '' : 'display:none;'}">${this.escapeHtml(cred.password)}</span>
                         <button class="view-pw-btn" data-idx="${idx}" aria-label="Show/Hide Password" title="Show/Hide Password">
                             <span class="eye-icon" id="eye-icon-${idx}">&#128065;</span>
                         </button>
@@ -203,12 +169,11 @@ class CredentialManager {
                     <div class="credential-actions">
                         <button class="copy-btn" data-value="${this.escapeHtml(cred.userName || cred.username)}" title="Copy Username">📋</button>
                         <button class="copy-btn" data-value="${this.escapeHtml(cred.password)}" title="Copy Password">🔑</button>
-                        <button class="delete-btn" data-id="${cred._id}" title="Delete" ${!this.isAdmin ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>🗑️</button>
+                        ${this.isAdmin ? `<button class="delete-btn" data-id="${cred._id}" title="Delete">🗑️</button>` : ''}
                     </div>
                 </div>
             `).join('')}
         </div>`;
-
         // Add event listeners for copy, view, and delete buttons
         container.querySelectorAll('.view-pw-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -252,6 +217,13 @@ class CredentialManager {
                 await this.copyToClipboard(btn.dataset.value);
             });
         });
+    }
+
+    showAdminLoginModal(action, id) {
+        // Show the admin login modal and store the pending action
+        const overlay = document.getElementById('adminLoginOverlay');
+        if (overlay) overlay.style.display = 'flex';
+        this.pendingSensitiveAction = { action, id };
     }
 
     async saveCredential() {
