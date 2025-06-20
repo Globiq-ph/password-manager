@@ -115,13 +115,13 @@ class CredentialManager {
                 project: document.getElementById('project').value,
                 category: document.getElementById('category').value,
                 name: document.getElementById('name').value,
-                username: document.getElementById('username').value,
+                userName: document.getElementById('username').value, // CHANGED from 'username' to 'userName'
                 password: document.getElementById('password').value,
                 notes: document.getElementById('notes').value || ''
             };
 
             // Validate required fields
-            if (!formData.project || !formData.category || !formData.name || !formData.username || !formData.password) {
+            if (!formData.project || !formData.category || !formData.name || !formData.userName || !formData.password) {
                 throw new Error('Please fill in all required fields');
             }
 
@@ -134,6 +134,17 @@ class CredentialManager {
         } catch (error) {
             console.error('Error saving credential:', error);
             this.showError(error.message || 'Failed to save credential');
+        }
+    }
+
+    async deleteCredential(id) {
+        try {
+            await window.api.deleteCredential(id);
+            await this.loadCredentials();
+            this.showSuccess('Credential deleted successfully');
+        } catch (error) {
+            console.error('Error deleting credential:', error);
+            this.showError('Failed to delete credential');
         }
     }
 
