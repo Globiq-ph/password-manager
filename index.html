@@ -9,6 +9,8 @@
     <script src="/src/js/api.js" defer></script>
     <script src="/src/js/credential-manager.js" defer></script>
     <script src="/src/js/main.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+    <script src="src/js/qr.js"></script>
     <style>
         :root {
             --maroon: #800000;
@@ -848,6 +850,13 @@
                 <label for="notes">Notes</label>
                 <textarea id="notes" name="notes"></textarea>
             </div>
+            <div class="form-group">
+                <label for="image">Attach Image</label>
+                <input type="file" id="image" name="image" accept="image/*">
+                <div id="imagePreview" style="margin-top:10px;"></div>
+            </div>
+            <button type="button" id="generateQR" style="margin-bottom: 12px; background: #22c55e; color: #fff;">Generate QR Code</button>
+            <div id="qrCodeContainer" style="text-align:center; margin-bottom: 16px;"></div>
             <button type="submit" id="saveCredential">Save Credential</button>
         </form>
     </div>

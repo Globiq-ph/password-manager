@@ -33,6 +33,27 @@ class CredentialManager {
             });
         }
 
+        // Image preview
+        const imageInput = document.getElementById('image');
+        if (imageInput) {
+            imageInput.addEventListener('change', function() {
+                const preview = document.getElementById('imagePreview');
+                preview.innerHTML = '';
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.maxWidth = '120px';
+                        img.style.maxHeight = '120px';
+                        img.style.borderRadius = '8px';
+                        preview.appendChild(img);
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        }
+
         // Password strength checker
         const passwordInput = document.getElementById('password');
         if (passwordInput) {
@@ -115,20 +136,29 @@ class CredentialManager {
                 project: document.getElementById('project').value,
                 category: document.getElementById('category').value,
                 name: document.getElementById('name').value,
-                username: document.getElementById('username').value, // revert to 'username' for backend compatibility
+                username: document.getElementById('username').value,
                 password: document.getElementById('password').value,
                 notes: document.getElementById('notes').value || ''
             };
-
+            // Handle image
+            const imageInput = document.getElementById('image');
+            if (imageInput && imageInput.files && imageInput.files[0]) {
+                const file = imageInput.files[0];
+                formData.image = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
             // Validate required fields
             if (!formData.project || !formData.category || !formData.name || !formData.username || !formData.password) {
                 throw new Error('Please fill in all required fields');
             }
-
             const result = await window.api.saveCredential(formData);
-
             await this.api.saveCredential(formData);
             document.getElementById('credentialForm').reset();
+            document.getElementById('imagePreview').innerHTML = '';
             await this.loadCredentials();
             this.showSuccess('Credential saved successfully');
         } catch (error) {

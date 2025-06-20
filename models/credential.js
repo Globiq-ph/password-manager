@@ -29,6 +29,10 @@ const credentialSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    image: {
+        type: String,
+        default: '' // base64-encoded image string
+    },
     createdAt: {
         type: Date,
         default: Date.now

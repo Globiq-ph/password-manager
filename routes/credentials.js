@@ -71,6 +71,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
                 decrypted.password = '**ENCRYPTION ERROR**';
             }
             delete decrypted.encryptedPassword;
+            // image is included by default
             return decrypted;
         });
         console.log('Decrypted credentials to send:', decryptedCredentials);
@@ -85,7 +86,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
     try {
         // Accept both 'username' and 'userName' for compatibility
-        const { project, category, name, password, notes } = req.body;
+        const { project, category, name, password, notes, image } = req.body;
         const username = req.body.username || req.body.userName;
         if (!username || !password) {
             return res.status(400).json({ error: 'Username and password are required.' });
@@ -98,7 +99,8 @@ router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
             name,
             userName: username, // Always store as userName
             encryptedPassword,
-            notes
+            notes,
+            image: image || ''
         });
         await credential.save();
         res.status(201).json({ message: 'Credential saved successfully.' });
@@ -112,7 +114,7 @@ router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
 router.put('/:id', validateCredential, async (req, res) => {
     try {
         const userId = req.header('X-User-Id');
-        const { project, category, name, username, password, status, isAdminOnly } = req.body;
+        const { project, category, name, username, password, status, isAdminOnly, image } = req.body;
 
         const credential = await Credential.findOne({ _id: req.params.id, userId });
         
@@ -128,6 +130,7 @@ router.put('/:id', validateCredential, async (req, res) => {
         credential.status = status;
         credential.isAdminOnly = isAdminOnly;
         credential.updatedAt = new Date();
+        if (image !== undefined) credential.image = image;
 
         await credential.save();
 
