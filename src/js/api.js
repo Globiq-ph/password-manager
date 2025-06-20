@@ -9,10 +9,15 @@ class Api {
         const userId = localStorage.getItem('userId');
         const userEmail = localStorage.getItem('userEmail');
         const userName = localStorage.getItem('userName');
-        if (userId && userEmail && userName && sessionStorage.getItem('isAdmin') !== 'true') {
+        // Use localStorage for admin state everywhere
+        if (userId && userEmail && userName && localStorage.getItem('isAdmin') !== 'true') {
             headers['X-User-Id'] = userId;
             headers['X-User-Email'] = userEmail;
             headers['X-User-Name'] = userName;
+        }
+        // Add X-Admin header if admin
+        if (localStorage.getItem('isAdmin') === 'true') {
+            headers['X-Admin'] = 'true';
         }
         return { ...headers, ...extra };
     }
@@ -45,23 +50,32 @@ class Api {
     }
 
     async getCredentials() {
-        const headers = this._getHeaders();
-        // Add admin auth if admin
-        if (sessionStorage.getItem('isAdmin') === 'true') {
-            headers['X-Admin-Auth'] = 'admin123:adminpassword';
+        // Only send X-Admin header if admin, do not send user headers for GET
+        let headers = { 'Content-Type': 'application/json' };
+        if (localStorage.getItem('isAdmin') === 'true') {
+            headers['X-Admin'] = 'true';
         }
-        const res = await fetch('/credentials', { headers });
-        if (!res.ok) throw new Error('Failed to fetch credentials');
+        const res = await fetch('/api/credentials', { headers });
+        if (!res.ok) {
+            let errorText = await res.text();
+            let errorMsg = `Failed to fetch credentials (HTTP ${res.status}): ${errorText}`;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMsg = errorJson.error || errorJson.message || errorMsg;
+            } catch (e) {
+                // Not JSON, keep errorText as is
+            }
+            throw new Error(errorMsg);
+        }
         return res.json();
     }
 
     async deleteCredential(id) {
         const headers = this._getHeaders();
-        // Add admin auth if admin
-        if (sessionStorage.getItem('isAdmin') === 'true') {
-            headers['X-Admin-Auth'] = 'admin123:adminpassword';
+        if (localStorage.getItem('isAdmin') === 'true') {
+            headers['X-Admin'] = 'true';
         }
-        const res = await fetch(`/credentials/${id}`, {
+        const res = await fetch(`/api/credentials/${id}`, {
             method: 'DELETE',
             headers
         });

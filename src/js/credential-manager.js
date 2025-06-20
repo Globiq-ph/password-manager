@@ -3,31 +3,16 @@ class CredentialManager {
         this.api = new Api();
         this.isAdmin = this.getAdminState();
         this.initializeEventListeners();
-        this.toggleAdminUI();
+        this.loadCredentials();
         this.pendingSensitiveAction = null;
     }
 
     getAdminState() {
-        // Use localStorage for persistence
         return localStorage.getItem('isAdmin') === 'true';
     }
     setAdminState(isAdmin) {
         localStorage.setItem('isAdmin', isAdmin ? 'true' : 'false');
         this.isAdmin = isAdmin;
-    }
-
-    toggleAdminUI() {
-        const loginBox = document.getElementById('adminLoginBox');
-        const passwordList = document.getElementById('passwordList');
-        const logoutBox = document.getElementById('adminLogoutBox');
-        if (this.isAdmin) {
-            if (loginBox) loginBox.style.display = 'none';
-            if (logoutBox) logoutBox.style.display = '';
-        } else {
-            if (loginBox) loginBox.style.display = '';
-            if (logoutBox) logoutBox.style.display = 'none';
-        }
-        this.loadCredentials();
     }
 
     initializeEventListeners() {
@@ -86,11 +71,11 @@ class CredentialManager {
                 const password = document.getElementById('adminPassword').value;
                 if (username === 'admin123' && password === 'adminpassword') {
                     this.setAdminState(true);
-                    this.toggleAdminUI();
                     this.showSuccess('Admin login successful!');
                     // Hide modal
                     const overlay = document.getElementById('adminLoginOverlay');
                     if (overlay) overlay.style.display = 'none';
+                    this.loadCredentials();
                     // If there was a pending sensitive action, perform it now
                     if (this.pendingSensitiveAction) {
                         if (this.pendingSensitiveAction.action === 'view') {
@@ -110,7 +95,6 @@ class CredentialManager {
                     }
                 } else {
                     this.setAdminState(false);
-                    this.toggleAdminUI();
                     this.showError('Invalid admin credentials.');
                 }
             });
@@ -120,8 +104,8 @@ class CredentialManager {
         if (adminLogoutBtn) {
             adminLogoutBtn.addEventListener('click', async () => {
                 this.setAdminState(false);
-                this.toggleAdminUI();
                 this.showSuccess('Logged out as admin.');
+                this.loadCredentials();
             });
         }
     }
@@ -131,8 +115,19 @@ class CredentialManager {
             const credentials = await this.api.getCredentials();
             this.displayCredentials(credentials);
         } catch (error) {
-            console.error('Error loading credentials:', error);
-            this.showError('Failed to load credentials');
+            let msg = 'Failed to load credentials';
+            if (error && error.message) {
+                msg += `: ${error.message}`;
+            } else if (typeof error === 'string') {
+                msg += `: ${error}`;
+            }
+            // Try to extract HTTP status if available
+            if (error && error.response && error.response.status) {
+                msg += ` (HTTP ${error.response.status})`;
+            }
+            this.showError(msg);
+            // Also log to console for developer
+            console.error('Error loading credentials (detailed):', error);
         }
     }
 
@@ -155,10 +150,11 @@ class CredentialManager {
                     <div class="credential-field"><label>Project:</label> <span>${this.escapeHtml(cred.project)}</span></div>
                     <div class="credential-field"><label>Category:</label> <span>${this.escapeHtml(cred.category)}</span></div>
                     <div class="credential-field"><label>Username:</label> <span>${this.escapeHtml(cred.userName || cred.username)}</span></div>
+                    <div class="credential-field"><label>Date Saved:</label> <span>${cred.createdAt ? this.formatDate(cred.createdAt) : ''}</span></div>
                     <div class="credential-field"><label>Password:</label> <span>
                         <span id="pw-mask-${idx}" class="pw-mask" style="${this.isAdmin ? 'display:none;' : ''}">${this.isAdmin ? '' : '<i class=\'fas fa-lock\' title=\'Hidden\'></i>'}</span>
                         <span id="pw-plain-${idx}" class="pw-plain" style="${this.isAdmin ? '' : 'display:none;'}">${this.escapeHtml(cred.password)}</span>
-                        <button class="view-pw-btn" data-idx="${idx}" aria-label="Show/Hide Password" title="Show/Hide Password">
+                        <button class="view-pw-btn" data-idx="${idx}" aria-label="Show/Hide Password" title="Show/Hide Password" style="${this.isAdmin ? '' : ''}">
                             <span class="eye-icon" id="eye-icon-${idx}">&#128065;</span>
                         </button>
                     </span></div>

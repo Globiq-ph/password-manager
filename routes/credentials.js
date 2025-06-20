@@ -4,29 +4,23 @@ const { encrypt, decrypt } = require('../utils/encryption');
 const Credential = require('../models/credential');
 const mongoose = require('mongoose');
 
-// Simple in-memory admin session (for demo only)
-let adminSession = { loggedIn: false };
-
 // Admin login endpoint
 router.post('/admin/login', (req, res) => {
     const { username, password } = req.body;
     if (username === 'admin123' && password === 'adminpassword') {
-        adminSession.loggedIn = true;
         return res.json({ success: true, message: 'Admin logged in' });
     }
-    adminSession.loggedIn = false;
     res.status(401).json({ success: false, message: 'Invalid admin credentials' });
 });
 
 // Admin logout endpoint
 router.post('/admin/logout', (req, res) => {
-    adminSession.loggedIn = false;
     res.json({ success: true, message: 'Admin logged out' });
 });
 
 // Middleware to check admin session
 const requireAdminSession = (req, res, next) => {
-    if (!adminSession.loggedIn) {
+    if (req.header('X-Admin') !== 'true') {
         return res.status(403).json({ error: 'Admin access required' });
     }
     next();
@@ -74,26 +68,29 @@ router.get('/debug/dbinfo', async (req, res) => {
     }
 });
 
-// Get all credentials for the user (TEMP: return all for debugging)
-router.get('/', requireAdminSession, async (req, res) => {
+// Get all credentials for the user (return all, mask passwords for non-admin)
+router.get('/', async (req, res) => {
+    console.log('GET /api/credentials called, X-Admin:', req.header('X-Admin'));
     try {
-        const credentials = await Credential.find({}); // Return all credentials for admin only
-        // Decrypt passwords for authorized credentials
-        const decryptedCredentials = credentials.map(cred => {
-            const decrypted = { ...cred.toObject() };
+        const credentials = await Credential.find({});
+        // Check for admin header
+        const isAdmin = req.header('X-Admin') === 'true';
+        const result = credentials.map(cred => {
+            const obj = { ...cred.toObject() };
             try {
-                if (cred.encryptedPassword) {
-                    decrypted.password = decrypt(JSON.parse(cred.encryptedPassword));
+                if (cred.encryptedPassword && isAdmin) {
+                    obj.password = decrypt(JSON.parse(cred.encryptedPassword));
+                } else {
+                    obj.password = '';
                 }
             } catch (error) {
-                decrypted.password = '**ENCRYPTION ERROR**';
+                obj.password = '**ENCRYPTION ERROR**';
             }
-            delete decrypted.encryptedPassword;
-            // Add createdAt field
-            decrypted.createdAt = cred.createdAt || cred._id.getTimestamp();
-            return decrypted;
+            delete obj.encryptedPassword;
+            obj.createdAt = cred.createdAt || cred._id.getTimestamp();
+            return obj;
         });
-        res.json(decryptedCredentials);
+        res.json(result);
     } catch (error) {
         res.status(500).json({ error: 'Internal server error', details: error.message, stack: error.stack });
     }
