@@ -113,6 +113,10 @@ class Api {
         });
     }
 
+    async getCredentialPassword(id) {
+        return this.request(`/credentials/${id}/password`);
+    }
+
     // Admin operations
     async isAdmin() {
         try {

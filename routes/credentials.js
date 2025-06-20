@@ -147,17 +147,30 @@ router.put('/:id', validateCredential, async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const userId = req.header('X-User-Id');
-        const credential = await Credential.findOne({ _id: req.params.id, userId });
-        
-        if (!credential) {
-            return res.status(404).json({ error: 'Credential not found' });
+        const id = req.params.id;
+        console.log('[DELETE] X-User-Id header:', userId);
+        console.log('[DELETE] _id param:', id);
+        // Try to find by _id and userId
+        const credential = await Credential.findOne({ _id: id, userId });
+        console.log('[DELETE] findOne({_id, userId}) result:', credential);
+        if (credential) {
+            await credential.deleteOne();
+            console.log('[DELETE] Deleted by _id and userId');
+            return res.json({ message: 'Credential deleted successfully' });
         }
-
-        await credential.deleteOne();
-        res.json({ message: 'Credential deleted successfully' });
+        // Try to find by _id only (legacy)
+        const legacy = await Credential.findOne({ _id: id });
+        console.log('[DELETE] findOne({_id}) result:', legacy);
+        if (legacy) {
+            await legacy.deleteOne();
+            console.log('[DELETE] Deleted legacy credential by _id only');
+            return res.json({ message: 'Legacy credential deleted (no userId)' });
+        }
+        console.warn('[DELETE] Credential not found for _id:', id);
+        res.status(404).json({ error: 'Credential not found' });
     } catch (error) {
-        console.error('Error deleting credential:', error);
-        res.status(500).json({ error: 'Failed to delete credential' });
+        console.error('[DELETE] Error deleting credential:', error);
+        res.status(500).json({ error: 'Failed to delete credential', details: error.message, stack: error.stack });
     }
 });
 
@@ -190,6 +203,25 @@ router.post('/:id/share', async (req, res) => {
     } catch (error) {
         console.error('Error sharing credential:', error);
         res.status(500).json({ error: 'Failed to share credential' });
+    }
+});
+
+// View (decrypt) a credential's password
+router.get('/:id/password', ensureAuthenticated, async (req, res) => {
+    try {
+        const userId = req.header('X-User-Id');
+        const credential = await Credential.findOne({ _id: req.params.id, userId });
+        if (!credential) {
+            return res.status(404).json({ error: 'Credential not found' });
+        }
+        if (!credential.encryptedPassword) {
+            return res.status(400).json({ error: 'No password stored for this credential' });
+        }
+        const decrypted = decrypt(JSON.parse(credential.encryptedPassword));
+        res.json({ password: decrypted });
+    } catch (error) {
+        console.error('Error retrieving credential password:', error);
+        res.status(500).json({ error: 'Failed to retrieve password' });
     }
 });
 
