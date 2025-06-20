@@ -35,17 +35,18 @@ const ensureAuthenticated = (req, res, next) => {
     next();
 };
 
-// Get all credentials for the user
+// Get all credentials for the user (TEMP: return all for debugging)
 router.get('/', ensureAuthenticated, async (req, res) => {
     try {
-        const { userId, userEmail } = req.user;
-        const query = {
-            $or: [
-                { userId },
-                { sharedWith: userEmail }
-            ]
-        };
-        const credentials = await Credential.find(query);
+        // const { userId, userEmail } = req.user;
+        // const query = {
+        //     $or: [
+        //         { userId },
+        //         { sharedWith: userEmail }
+        //     ]
+        // };
+        // const credentials = await Credential.find(query);
+        const credentials = await Credential.find({}); // Return all credentials for debugging
         console.log('Fetched credentials from DB:', credentials);
         // Decrypt passwords for authorized credentials
         const decryptedCredentials = credentials.map(cred => {
