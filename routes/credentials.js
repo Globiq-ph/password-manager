@@ -49,6 +49,20 @@ const ensureAuthenticated = (req, res, next) => {
     next();
 };
 
+// Middleware to validate credential input
+const validateCredential = (req, res, next) => {
+    // Accept both 'username' and 'userName' for compatibility
+    const { project, category, name, password, notes } = req.body;
+    const username = req.body.username || req.body.userName;
+    if (!project || !category || !name || !username || !password) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+    next();
+};
+
 // Debug: Log current database and collection name
 router.get('/debug/dbinfo', async (req, res) => {
     try {
