@@ -99,18 +99,33 @@ class Api {
     }
 
     async getCredentials() {
-        return this.request('/credentials');
+        const headers = this._getHeaders();
+        // Add admin auth if admin
+        if (sessionStorage.getItem('isAdmin') === 'true') {
+            headers['X-Admin-Auth'] = 'admin123:adminpassword';
+        }
+        const res = await fetch('/credentials', { headers });
+        if (!res.ok) throw new Error('Failed to fetch credentials');
+        return res.json();
+    }
+
+    async deleteCredential(id) {
+        const headers = this._getHeaders();
+        // Add admin auth if admin
+        if (sessionStorage.getItem('isAdmin') === 'true') {
+            headers['X-Admin-Auth'] = 'admin123:adminpassword';
+        }
+        const res = await fetch(`/credentials/${id}`, {
+            method: 'DELETE',
+            headers
+        });
+        if (!res.ok) throw new Error('Failed to delete credential');
+        return res.json();
     }
 
     async getAllCredentials() {
         // For compatibility with main.js
         return this.getCredentials();
-    }
-
-    async deleteCredential(id) {
-        return this.request(`/credentials/${id}`, {
-            method: 'DELETE'
-        });
     }
 
     async getCredentialPassword(id) {

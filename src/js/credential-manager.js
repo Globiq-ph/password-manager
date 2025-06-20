@@ -1,11 +1,31 @@
 class CredentialManager {
     constructor() {
         this.api = new Api();
+        this.isAdmin = false;
         this.initializeEventListeners();
-        this.loadCredentials();
+        this.checkAdminSession();
         this.categories = new Set();
         this.projects = new Set();
         this.setupAdminFeatures();
+    }
+
+    checkAdminSession() {
+        // Check if admin is logged in (sessionStorage for simplicity)
+        this.isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+        this.toggleAdminUI();
+    }
+
+    toggleAdminUI() {
+        const loginBox = document.getElementById('adminLoginBox');
+        const passwordList = document.getElementById('passwordList');
+        if (this.isAdmin) {
+            if (loginBox) loginBox.style.display = 'none';
+            if (passwordList) passwordList.style.display = '';
+            this.loadCredentials();
+        } else {
+            if (loginBox) loginBox.style.display = '';
+            if (passwordList) passwordList.style.display = 'none';
+        }
     }
 
     async setupAdminFeatures() {
@@ -69,9 +89,28 @@ class CredentialManager {
                 this.filterCredentials(e.target.value);
             });
         }
+
+        // Admin login form
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        if (adminLoginForm) {
+            adminLoginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = document.getElementById('adminUsername').value;
+                const password = document.getElementById('adminPassword').value;
+                if (username === 'admin123' && password === 'adminpassword') {
+                    sessionStorage.setItem('isAdmin', 'true');
+                    this.isAdmin = true;
+                    this.toggleAdminUI();
+                    this.showSuccess('Admin login successful!');
+                } else {
+                    this.showError('Invalid admin credentials.');
+                }
+            });
+        }
     }
 
     async loadCredentials() {
+        if (!this.isAdmin) return; // Only admin can view
         try {
             const credentials = await this.api.getCredentials();
             this.displayCredentials(credentials);
@@ -84,12 +123,14 @@ class CredentialManager {
     displayCredentials(credentials) {
         const container = document.getElementById('passwordList');
         if (!container) return;
-
+        if (!this.isAdmin) {
+            container.innerHTML = '';
+            return;
+        }
         if (!credentials || credentials.length === 0) {
             container.innerHTML = '<p class="no-credentials">No credentials found</p>';
             return;
         }
-
         const table = document.createElement('table');
         table.className = 'credentials-table modern-table';
         table.innerHTML = `
@@ -100,6 +141,7 @@ class CredentialManager {
                     <th>Name</th>
                     <th>Username</th>
                     <th>Password</th>
+                    <th>Date Added</th>
                     <th>Image</th>
                     <th>Actions</th>
                 </tr>
@@ -118,6 +160,7 @@ class CredentialManager {
                                 <span class="eye-icon" id="eye-icon-${idx}">&#128065;</span>
                             </button>
                         </td>
+                        <td>${cred.createdAt ? new Date(cred.createdAt).toLocaleString() : ''}</td>
                         <td>
                             ${cred.image ? `<img src="${cred.image}" alt="Credential Image" class="credential-img" style="max-width:48px;max-height:48px;border-radius:6px;box-shadow:0 1px 4px #0002;" />` : ''}
                         </td>

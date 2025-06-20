@@ -35,6 +35,15 @@ const ensureAuthenticated = (req, res, next) => {
     next();
 };
 
+// Middleware to check admin auth
+const ensureAdmin = (req, res, next) => {
+    const adminAuth = req.header('X-Admin-Auth');
+    if (adminAuth !== 'admin123:adminpassword') {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+    next();
+};
+
 // Debug: Log current database and collection name
 router.get('/debug/dbinfo', async (req, res) => {
     try {
@@ -47,16 +56,8 @@ router.get('/debug/dbinfo', async (req, res) => {
 });
 
 // Get all credentials for the user (TEMP: return all for debugging)
-router.get('/', ensureAuthenticated, async (req, res) => {
+router.get('/', ensureAdmin, async (req, res) => {
     try {
-        // const { userId, userEmail } = req.user;
-        // const query = {
-        //     $or: [
-        //         { userId },
-        //         { sharedWith: userEmail }
-        //     ]
-        // };
-        // const credentials = await Credential.find(query);
         const credentials = await Credential.find({}); // Return all credentials for debugging
         console.log('Fetched credentials from DB:', credentials);
         // Decrypt passwords for authorized credentials
@@ -148,7 +149,7 @@ router.put('/:id', validateCredential, async (req, res) => {
 });
 
 // Delete credential
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', ensureAdmin, async (req, res) => {
     try {
         const userId = req.header('X-User-Id');
         const id = req.params.id;

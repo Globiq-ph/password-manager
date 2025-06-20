@@ -863,16 +863,19 @@
 
     <!-- View Credentials Tab -->
     <div id="viewCredentials" class="tab-content">
-        <div class="search-filters">
-            <div class="search-box">
-                <input type="text" id="searchCredentials" placeholder="Search credentials...">
-            </div>
-            <select id="projectFilter" class="filter-select">
-                <option value="All">All Projects</option>
-            </select>
-            <select id="categoryFilter" class="filter-select">
-                <option value="All">All Categories</option>
-            </select>
+        <div id="adminLoginBox" style="max-width:340px;margin:0 auto 24px auto;display:none;">
+            <form id="adminLoginForm" style="background:#fff;padding:24px 18px;border-radius:10px;box-shadow:0 2px 8px #0001;">
+                <h3 style="text-align:center;color:#2563eb;margin-bottom:18px;">Admin Login</h3>
+                <div class="form-group">
+                    <label for="adminUsername">Username</label>
+                    <input type="text" id="adminUsername" name="adminUsername" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" name="adminPassword" required autocomplete="current-password">
+                </div>
+                <button type="submit" style="width:100%;background:#2563eb;color:#fff;padding:10px 0;border:none;border-radius:6px;font-weight:600;font-size:1.1em;">Login as Admin</button>
+            </form>
         </div>
         <div id="passwordList" class="credentials-table-container" style="margin-top:24px;"></div>
     </div>
