@@ -102,6 +102,11 @@ class Api {
         return this.request('/credentials');
     }
 
+    async getAllCredentials() {
+        // For compatibility with main.js
+        return this.getCredentials();
+    }
+
     async deleteCredential(id) {
         return this.request(`/credentials/${id}`, {
             method: 'DELETE'
