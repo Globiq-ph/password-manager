@@ -147,6 +147,11 @@ class CredentialManager {
                 const mask = document.getElementById(`pw-mask-${idx}`);
                 const plain = document.getElementById(`pw-plain-${idx}`);
                 const eye = document.getElementById(`eye-icon-${idx}`);
+                console.log('View Password clicked:', { idx, mask, plain, eye });
+                if (!plain || !mask) {
+                    this.showError('Password not available for this credential.');
+                    return;
+                }
                 if (mask.style.display === 'none') {
                     mask.style.display = '';
                     plain.style.display = 'none';
