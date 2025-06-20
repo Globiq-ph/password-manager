@@ -46,6 +46,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
             ]
         };
         const credentials = await Credential.find(query);
+        console.log('Fetched credentials from DB:', credentials);
         // Decrypt passwords for authorized credentials
         const decryptedCredentials = credentials.map(cred => {
             const decrypted = { ...cred.toObject() };
@@ -60,6 +61,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
             delete decrypted.encryptedPassword;
             return decrypted;
         });
+        console.log('Decrypted credentials to send:', decryptedCredentials);
         res.json(decryptedCredentials);
     } catch (error) {
         console.error('Error fetching credentials:', error);
