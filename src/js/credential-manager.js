@@ -171,7 +171,7 @@ class CredentialManager {
                         <td>${this.escapeHtml(cred.project)}</td>
                         <td>${this.escapeHtml(cred.category)}</td>
                         <td>${this.escapeHtml(cred.name)}</td>
-                        <td>${this.escapeHtml(cred.username)}</td>
+                        <td>${this.escapeHtml(cred.userName || cred.username)}</td>
                         <td class="pw-cell">
                             <span id="pw-mask-${idx}" class="pw-mask">********</span>
                             <span id="pw-plain-${idx}" class="pw-plain" style="display:none;">${this.escapeHtml(cred.password)}</span>
@@ -184,7 +184,7 @@ class CredentialManager {
                             ${cred.image ? `<img src="${cred.image}" alt="Credential Image" class="credential-img" style="max-width:48px;max-height:48px;border-radius:6px;box-shadow:0 1px 4px #0002;" />` : ''}
                         </td>
                         <td>
-                            <button class="copy-btn" data-value="${this.escapeHtml(cred.username)}" title="Copy Username">📋</button>
+                            <button class="copy-btn" data-value="${this.escapeHtml(cred.userName || cred.username)}" title="Copy Username">📋</button>
                             <button class="copy-btn" data-value="${this.escapeHtml(cred.password)}" title="Copy Password">🔑</button>
                             <button class="delete-btn" data-id="${cred._id}" title="Delete">🗑️</button>
                         </td>
@@ -198,38 +198,31 @@ class CredentialManager {
             if (e.target.classList.contains('copy-btn')) {
                 await this.copyToClipboard(e.target.dataset.value);
             } else if (e.target.classList.contains('delete-btn')) {
-                await this.deleteCredential(e.target.dataset.id);
-            } else if (
-                e.target.classList.contains('view-pw-btn') ||
-                (e.target.classList.contains('eye-icon') && e.target.parentElement.classList.contains('view-pw-btn'))
-            ) {
-                // Support clicking the button or the icon
-                const btn = e.target.classList.contains('view-pw-btn') ? e.target : e.target.parentElement;
-                const idx = btn.dataset.idx;
+                const id = e.target.dataset.id;
+                if (confirm('Are you sure you want to delete this credential?')) {
+                    try {
+                        await this.api.deleteCredential(id);
+                        this.showSuccess('Credential deleted successfully');
+                        this.loadCredentials();
+                    } catch (error) {
+                        this.showError('Failed to delete credential');
+                    }
+                }
+            } else if (e.target.classList.contains('view-pw-btn')) {
+                const idx = e.target.dataset.idx;
                 const mask = document.getElementById(`pw-mask-${idx}`);
                 const plain = document.getElementById(`pw-plain-${idx}`);
-                const eye = document.getElementById(`eye-icon-${idx}`);
-                console.log('View Password clicked:', { idx, mask, plain, eye });
-                if (!plain || !mask) {
-                    this.showError('Password not available for this credential.');
-                    return;
-                }
-                if (mask.style.display === 'none') {
-                    mask.style.display = '';
-                    plain.style.display = 'none';
-                    btn.setAttribute('aria-label', 'Show Password');
-                    btn.title = 'Show Password';
-                    if (eye) eye.style.opacity = '0.5';
-                } else {
-                    mask.style.display = 'none';
-                    plain.style.display = '';
-                    btn.setAttribute('aria-label', 'Hide Password');
-                    btn.title = 'Hide Password';
-                    if (eye) eye.style.opacity = '1';
+                if (mask && plain) {
+                    if (mask.style.display === 'none') {
+                        mask.style.display = '';
+                        plain.style.display = 'none';
+                    } else {
+                        mask.style.display = 'none';
+                        plain.style.display = '';
+                    }
                 }
             }
         });
-
         container.innerHTML = '';
         container.appendChild(table);
     }
@@ -388,24 +381,6 @@ class CredentialManager {
         credentials.forEach(card => {
             const text = card.textContent.toLowerCase();
             card.style.display = text.includes(searchLower) ? '' : 'none';
-        });
-    }
-
-    filterByCategory(category) {
-        const credentials = document.querySelectorAll('.credential-card');
-        
-        credentials.forEach(card => {
-            const cardCategory = card.querySelector('[data-category]')?.dataset.category;
-            card.style.display = !category || cardCategory === category ? '' : 'none';
-        });
-    }
-
-    filterByProject(project) {
-        const credentials = document.querySelectorAll('.credential-card');
-        
-        credentials.forEach(card => {
-            const cardProject = card.querySelector('[data-project]')?.dataset.project;
-            card.style.display = !project || cardProject === project ? '' : 'none';
         });
     }
 }

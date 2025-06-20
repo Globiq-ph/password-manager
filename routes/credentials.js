@@ -4,41 +4,29 @@ const { encrypt, decrypt } = require('../utils/encryption');
 const Credential = require('../models/credential');
 const mongoose = require('mongoose');
 
-// Middleware to validate credential input
-const validateCredential = (req, res, next) => {
-    // Accept both 'username' and 'userName' for compatibility
-    const { project, category, name, password, notes } = req.body;
-    const username = req.body.username || req.body.userName;
-    if (!project || !category || !name || !username || !password) {
-        return res.status(400).json({ error: 'All fields are required' });
-    }
-    if (password.length < 8) {
-        return res.status(400).json({ error: 'Password must be at least 8 characters long' });
-    }
-    next();
-};
+// Simple in-memory admin session (for demo only)
+let adminSession = { loggedIn: false };
 
-// Middleware to ensure authentication
-const ensureAuthenticated = (req, res, next) => {
-    const userId = req.header('X-User-Id');
-    const userEmail = req.header('X-User-Email');
-    const userName = req.header('X-User-Name');
-    
-    if (!userId || !userEmail) {
-        return res.status(401).json({ 
-            error: 'Authentication required',
-            details: 'User ID and email are required in headers'
-        });
+// Admin login endpoint
+router.post('/admin/login', (req, res) => {
+    const { username, password } = req.body;
+    if (username === 'admin123' && password === 'adminpassword') {
+        adminSession.loggedIn = true;
+        return res.json({ success: true, message: 'Admin logged in' });
     }
+    adminSession.loggedIn = false;
+    res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+});
 
-    req.user = { userId, userEmail, userName: userName || 'Unknown User' };
-    next();
-};
+// Admin logout endpoint
+router.post('/admin/logout', (req, res) => {
+    adminSession.loggedIn = false;
+    res.json({ success: true, message: 'Admin logged out' });
+});
 
-// Middleware to check admin auth
-const ensureAdmin = (req, res, next) => {
-    const adminAuth = req.header('X-Admin-Auth');
-    if (adminAuth !== 'admin123:adminpassword') {
+// Middleware to check admin session
+const requireAdminSession = (req, res, next) => {
+    if (!adminSession.loggedIn) {
         return res.status(403).json({ error: 'Admin access required' });
     }
     next();
@@ -56,10 +44,9 @@ router.get('/debug/dbinfo', async (req, res) => {
 });
 
 // Get all credentials for the user (TEMP: return all for debugging)
-router.get('/', ensureAdmin, async (req, res) => {
+router.get('/', requireAdminSession, async (req, res) => {
     try {
-        const credentials = await Credential.find({}); // Return all credentials for debugging
-        console.log('Fetched credentials from DB:', credentials);
+        const credentials = await Credential.find({}); // Return all credentials for admin only
         // Decrypt passwords for authorized credentials
         const decryptedCredentials = credentials.map(cred => {
             const decrypted = { ...cred.toObject() };
@@ -68,17 +55,15 @@ router.get('/', ensureAdmin, async (req, res) => {
                     decrypted.password = decrypt(JSON.parse(cred.encryptedPassword));
                 }
             } catch (error) {
-                console.error('Decryption error for credential:', cred._id, error);
                 decrypted.password = '**ENCRYPTION ERROR**';
             }
             delete decrypted.encryptedPassword;
-            // image is included by default
+            // Add createdAt field
+            decrypted.createdAt = cred.createdAt || cred._id.getTimestamp();
             return decrypted;
         });
-        console.log('Decrypted credentials to send:', decryptedCredentials);
         res.json(decryptedCredentials);
     } catch (error) {
-        console.error('Error fetching credentials:', error);
         res.status(500).json({ error: 'Internal server error', details: error.message, stack: error.stack });
     }
 });
@@ -149,20 +134,16 @@ router.put('/:id', validateCredential, async (req, res) => {
 });
 
 // Delete credential
-router.delete('/:id', ensureAdmin, async (req, res) => {
+router.delete('/:id', requireAdminSession, async (req, res) => {
     try {
         const id = req.params.id;
-        // Only require _id for admin delete
         const credential = await Credential.findOne({ _id: id });
         if (credential) {
             await credential.deleteOne();
-            console.log('[DELETE] Deleted by _id');
             return res.json({ message: 'Credential deleted successfully' });
         }
-        console.warn('[DELETE] Credential not found for _id:', id);
         res.status(404).json({ error: 'Credential not found' });
     } catch (error) {
-        console.error('[DELETE] Error deleting credential:', error);
         res.status(500).json({ error: 'Failed to delete credential', details: error.message, stack: error.stack });
     }
 });
