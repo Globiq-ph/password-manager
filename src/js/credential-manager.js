@@ -91,7 +91,7 @@ class CredentialManager {
         }
 
         const table = document.createElement('table');
-        table.className = 'credentials-table';
+        table.className = 'credentials-table modern-table';
         table.innerHTML = `
             <thead>
                 <tr>
@@ -100,6 +100,7 @@ class CredentialManager {
                     <th>Name</th>
                     <th>Username</th>
                     <th>Password</th>
+                    <th>Image</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -110,15 +111,20 @@ class CredentialManager {
                         <td>${this.escapeHtml(cred.category)}</td>
                         <td>${this.escapeHtml(cred.name)}</td>
                         <td>${this.escapeHtml(cred.username)}</td>
-                        <td>
+                        <td class="pw-cell">
                             <span id="pw-mask-${idx}" class="pw-mask">********</span>
                             <span id="pw-plain-${idx}" class="pw-plain" style="display:none;">${this.escapeHtml(cred.password)}</span>
+                            <button class="view-pw-btn" data-idx="${idx}" aria-label="Show/Hide Password" title="Show/Hide Password">
+                                <span class="eye-icon" id="eye-icon-${idx}">&#128065;</span>
+                            </button>
                         </td>
                         <td>
-                            <button class="copy-btn" data-value="${this.escapeHtml(cred.username)}">Copy Username</button>
-                            <button class="copy-btn" data-value="${this.escapeHtml(cred.password)}">Copy Password</button>
-                            <button class="view-pw-btn" data-idx="${idx}">View Password</button>
-                            <button class="delete-btn" data-id="${cred._id}">Delete</button>
+                            ${cred.image ? `<img src="${cred.image}" alt="Credential Image" class="credential-img" style="max-width:48px;max-height:48px;border-radius:6px;box-shadow:0 1px 4px #0002;" />` : ''}
+                        </td>
+                        <td>
+                            <button class="copy-btn" data-value="${this.escapeHtml(cred.username)}" title="Copy Username">📋</button>
+                            <button class="copy-btn" data-value="${this.escapeHtml(cred.password)}" title="Copy Password">🔑</button>
+                            <button class="delete-btn" data-id="${cred._id}" title="Delete">🗑️</button>
                         </td>
                     </tr>
                 `).join('')}
@@ -131,18 +137,28 @@ class CredentialManager {
                 await this.copyToClipboard(e.target.dataset.value);
             } else if (e.target.classList.contains('delete-btn')) {
                 await this.deleteCredential(e.target.dataset.id);
-            } else if (e.target.classList.contains('view-pw-btn')) {
-                const idx = e.target.dataset.idx;
+            } else if (
+                e.target.classList.contains('view-pw-btn') ||
+                (e.target.classList.contains('eye-icon') && e.target.parentElement.classList.contains('view-pw-btn'))
+            ) {
+                // Support clicking the button or the icon
+                const btn = e.target.classList.contains('view-pw-btn') ? e.target : e.target.parentElement;
+                const idx = btn.dataset.idx;
                 const mask = document.getElementById(`pw-mask-${idx}`);
                 const plain = document.getElementById(`pw-plain-${idx}`);
+                const eye = document.getElementById(`eye-icon-${idx}`);
                 if (mask.style.display === 'none') {
                     mask.style.display = '';
                     plain.style.display = 'none';
-                    e.target.textContent = 'View Password';
+                    btn.setAttribute('aria-label', 'Show Password');
+                    btn.title = 'Show Password';
+                    if (eye) eye.style.opacity = '0.5';
                 } else {
                     mask.style.display = 'none';
                     plain.style.display = '';
-                    e.target.textContent = 'Hide Password';
+                    btn.setAttribute('aria-label', 'Hide Password');
+                    btn.title = 'Hide Password';
+                    if (eye) eye.style.opacity = '1';
                 }
             }
         });
@@ -174,9 +190,9 @@ class CredentialManager {
             }
             // Validate required fields
             if (!formData.project || !formData.category || !formData.name || !formData.username || !formData.password) {
-                throw new Error('Please fill in all required fields');
+                this.showError('Please fill in all required fields');
+                return;
             }
-            // Only call one save method to avoid duplicates
             await this.api.saveCredential(formData);
             document.getElementById('credentialForm').reset();
             document.getElementById('imagePreview').innerHTML = '';

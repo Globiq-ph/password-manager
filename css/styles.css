@@ -142,6 +142,96 @@ button[type="submit"]:hover {
     background: linear-gradient(90deg, #1d4ed8 60%, #2563eb 100%);
 }
 
+/* Modern credentials table improvements */
+.credentials-table.modern-table {
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(37,99,235,0.07);
+    overflow: hidden;
+    background: #f9fafb;
+}
+.credentials-table.modern-table th,
+.credentials-table.modern-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 1.08em;
+}
+.credentials-table.modern-table th {
+    background: #e0e7ff;
+    color: #1e40af;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.credentials-table.modern-table tr:hover {
+    background: #f1f5f9;
+    transition: background 0.2s;
+}
+.credentials-table .pw-cell {
+    white-space: nowrap;
+    position: relative;
+}
+.credentials-table .pw-mask,
+.credentials-table .pw-plain {
+    font-family: 'Fira Mono', 'Consolas', monospace;
+    font-size: 1.08em;
+    letter-spacing: 0.1em;
+    vertical-align: middle;
+}
+.credentials-table .view-pw-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: 6px;
+    padding: 4px 6px;
+    vertical-align: middle;
+    outline: none;
+    transition: background 0.2s;
+}
+.credentials-table .view-pw-btn:focus {
+    background: #e0e7ff;
+    border-radius: 4px;
+}
+.credentials-table .eye-icon {
+    font-size: 1.2em;
+    color: #2563eb;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.credentials-table .view-pw-btn[aria-label="Hide Password"] .eye-icon {
+    opacity: 1;
+    color: #1e293b;
+}
+.credential-img {
+    max-width: 48px;
+    max-height: 48px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px #0002;
+    display: block;
+    margin: 0 auto;
+}
+.credentials-table .copy-btn,
+.credentials-table .delete-btn {
+    padding: 7px 14px;
+    margin: 0 2px;
+    border-radius: 6px;
+    font-size: 1em;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: background 0.2s, color 0.2s;
+}
+.credentials-table .copy-btn {
+    background: #22c55e;
+    color: #fff;
+}
+.credentials-table .copy-btn:hover {
+    background: #16a34a;
+}
+.credentials-table .delete-btn {
+    background: #ef4444;
+    color: #fff;
+}
+.credentials-table .delete-btn:hover {
+    background: #b91c1c;
+}
+
 .credentials-table {
     width: 100%;
     border-collapse: collapse;
