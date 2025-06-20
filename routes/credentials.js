@@ -6,16 +6,15 @@ const mongoose = require('mongoose');
 
 // Middleware to validate credential input
 const validateCredential = (req, res, next) => {
-    const { project, category, name, username, password } = req.body;
-    
+    // Accept both 'username' and 'userName' for compatibility
+    const { project, category, name, password, notes } = req.body;
+    const username = req.body.username || req.body.userName;
     if (!project || !category || !name || !username || !password) {
         return res.status(400).json({ error: 'All fields are required' });
     }
-
     if (password.length < 8) {
         return res.status(400).json({ error: 'Password must be at least 8 characters long' });
     }
-
     next();
 };
 
@@ -85,7 +84,9 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 // Save new credential
 router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
     try {
-        const { project, category, name, username, password, notes } = req.body;
+        // Accept both 'username' and 'userName' for compatibility
+        const { project, category, name, password, notes } = req.body;
+        const username = req.body.username || req.body.userName;
         if (!username || !password) {
             return res.status(400).json({ error: 'Username and password are required.' });
         }
