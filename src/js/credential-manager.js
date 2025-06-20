@@ -73,7 +73,7 @@ class CredentialManager {
             });
         }
 
-        // Admin login form (View Credentials tab)
+        // Admin login form
         const adminLoginBox = document.getElementById('adminLoginBox');
         const adminLogoutBox = document.getElementById('adminLogoutBox');
         const adminLoginForm = document.getElementById('adminLoginForm');
