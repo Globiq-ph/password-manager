@@ -95,27 +95,43 @@ class CredentialManager {
         // Admin login form
         const adminLoginForm = document.getElementById('adminLoginForm');
         if (adminLoginForm) {
-            adminLoginForm.addEventListener('submit', (e) => {
+            adminLoginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const username = document.getElementById('adminUsername').value.trim();
                 const password = document.getElementById('adminPassword').value;
-                if (username === 'admin123' && password === 'adminpassword') {
-                    sessionStorage.setItem('isAdmin', 'true');
-                    this.isAdmin = true;
-                    this.toggleAdminUI();
-                    this.showSuccess('Admin login successful!');
-                } else {
+                try {
+                    const response = await fetch('/api/credentials/admin/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        sessionStorage.setItem('isAdmin', 'true');
+                        this.isAdmin = true;
+                        this.toggleAdminUI();
+                        this.showSuccess('Admin login successful!');
+                    } else {
+                        sessionStorage.removeItem('isAdmin');
+                        this.isAdmin = false;
+                        this.toggleAdminUI();
+                        this.showError(data.message || 'Invalid admin credentials.');
+                    }
+                } catch (err) {
                     sessionStorage.removeItem('isAdmin');
                     this.isAdmin = false;
                     this.toggleAdminUI();
-                    this.showError('Invalid admin credentials.');
+                    this.showError('Login failed. Please try again.');
                 }
             });
         }
         // Admin logout button
         const adminLogoutBtn = document.getElementById('adminLogoutBtn');
         if (adminLogoutBtn) {
-            adminLogoutBtn.addEventListener('click', () => {
+            adminLogoutBtn.addEventListener('click', async () => {
+                try {
+                    await fetch('/api/credentials/admin/logout', { method: 'POST' });
+                } catch (e) {}
                 sessionStorage.removeItem('isAdmin');
                 this.isAdmin = false;
                 this.toggleAdminUI();
