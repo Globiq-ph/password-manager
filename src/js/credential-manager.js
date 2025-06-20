@@ -131,7 +131,11 @@ class CredentialManager {
             this.displayCredentials(credentials);
         } catch (error) {
             console.error('Error loading credentials:', error);
-            this.showError('Failed to load credentials');
+            if (error.message && error.message.includes('Failed to fetch credentials')) {
+                this.showError('Admin access denied. Please check your credentials.');
+            } else {
+                this.showError('Failed to load credentials');
+            }
         }
     }
 

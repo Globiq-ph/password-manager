@@ -103,8 +103,10 @@ class Api {
         // Add admin auth if admin
         if (sessionStorage.getItem('isAdmin') === 'true') {
             headers['X-Admin-Auth'] = 'admin123:adminpassword';
+            console.log('Sending X-Admin-Auth header for admin:', headers['X-Admin-Auth']);
         }
         const res = await fetch('/credentials', { headers });
+        console.log('GET /credentials response status:', res.status);
         if (!res.ok) throw new Error('Failed to fetch credentials');
         return res.json();
     }
@@ -114,11 +116,13 @@ class Api {
         // Add admin auth if admin
         if (sessionStorage.getItem('isAdmin') === 'true') {
             headers['X-Admin-Auth'] = 'admin123:adminpassword';
+            console.log('Sending X-Admin-Auth header for admin:', headers['X-Admin-Auth']);
         }
         const res = await fetch(`/credentials/${id}`, {
             method: 'DELETE',
             headers
         });
+        console.log('DELETE /credentials response status:', res.status);
         if (!res.ok) throw new Error('Failed to delete credential');
         return res.json();
     }
