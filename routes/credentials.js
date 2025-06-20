@@ -207,11 +207,11 @@ router.post('/:id/share', async (req, res) => {
     }
 });
 
-// View (decrypt) a credential's password
-router.get('/:id/password', ensureAuthenticated, async (req, res) => {
+// View (decrypt) a credential's password (ADMIN ONLY)
+router.get('/:id/password', requireAdminSession, async (req, res) => {
     try {
-        const userId = req.header('X-User-Id');
-        const credential = await Credential.findOne({ _id: req.params.id, userId });
+        const id = req.params.id;
+        const credential = await Credential.findOne({ _id: id });
         if (!credential) {
             return res.status(404).json({ error: 'Credential not found' });
         }

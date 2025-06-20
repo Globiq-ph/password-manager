@@ -73,7 +73,9 @@ class CredentialManager {
             });
         }
 
-        // Admin login form
+        // Admin login form (View Credentials tab)
+        const adminLoginBox = document.getElementById('adminLoginBox');
+        const adminLogoutBox = document.getElementById('adminLogoutBox');
         const adminLoginForm = document.getElementById('adminLoginForm');
         if (adminLoginForm) {
             adminLoginForm.addEventListener('submit', async (e) => {
@@ -83,40 +85,38 @@ class CredentialManager {
                 if (username === 'admin123' && password === 'adminpassword') {
                     this.setAdminState(true);
                     this.showSuccess('Admin login successful!');
-                    // Hide modal
-                    const overlay = document.getElementById('adminLoginOverlay');
-                    if (overlay) overlay.style.display = 'none';
+                    if (adminLoginBox) adminLoginBox.style.display = 'none';
+                    if (adminLogoutBox) adminLogoutBox.style.display = 'block';
                     this.loadCredentials();
-                    // If there was a pending sensitive action, perform it now
-                    if (this.pendingSensitiveAction) {
-                        if (this.pendingSensitiveAction.action === 'view') {
-                            // Reveal all passwords
-                            document.querySelectorAll('.pw-mask').forEach(el => el.style.display = 'none');
-                            document.querySelectorAll('.pw-plain').forEach(el => el.style.display = '');
-                        } else if (this.pendingSensitiveAction.action === 'delete') {
-                            const id = this.pendingSensitiveAction.id;
-                            this.api.deleteCredential(id).then(() => {
-                                this.showSuccess('Credential deleted successfully');
-                                this.loadCredentials();
-                            }).catch(() => {
-                                this.showError('Failed to delete credential');
-                            });
-                        }
-                        this.pendingSensitiveAction = null;
-                    }
                 } else {
                     this.setAdminState(false);
                     this.showError('Invalid admin credentials.');
                 }
             });
         }
-        // Admin logout button
-        const adminLogoutBtn = document.getElementById('adminLogoutBtn');
-        if (adminLogoutBtn) {
-            adminLogoutBtn.addEventListener('click', async () => {
-                this.setAdminState(false);
-                this.showSuccess('Logged out as admin.');
-                this.loadCredentials();
+        if (adminLogoutBox) {
+            const btn = document.getElementById('adminLogoutBtn');
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    this.setAdminState(false);
+                    this.showSuccess('Logged out as admin.');
+                    if (adminLoginBox) adminLoginBox.style.display = 'block';
+                    if (adminLogoutBox) adminLogoutBox.style.display = 'none';
+                    this.loadCredentials();
+                });
+            }
+        }
+        // Show/hide admin login/logout UI on tab switch
+        const viewTab = document.querySelector('[data-tab="viewCredentials"]');
+        if (viewTab) {
+            viewTab.addEventListener('click', () => {
+                if (this.isAdmin) {
+                    if (adminLoginBox) adminLoginBox.style.display = 'none';
+                    if (adminLogoutBox) adminLogoutBox.style.display = 'block';
+                } else {
+                    if (adminLoginBox) adminLoginBox.style.display = 'block';
+                    if (adminLogoutBox) adminLogoutBox.style.display = 'none';
+                }
             });
         }
     }
@@ -158,77 +158,50 @@ class CredentialManager {
                             <i class="fas fa-calendar-alt"></i> ${cred.createdAt ? this.formatDate(cred.createdAt) : ''}
                         </span>
                     </div>
-                    <div class="credential-field"><label>Project:</label> <span>${this.escapeHtml(cred.project)}</span></div>
-                    <div class="credential-field"><label>Category:</label> <span>${this.escapeHtml(cred.category)}</span></div>
                     <div class="credential-field"><label>Username:</label> <span>${this.escapeHtml(cred.userName || cred.username)}</span></div>
                     <div class="credential-field"><label>Date Saved:</label> <span>${cred.createdAt ? this.formatDate(cred.createdAt) : ''}</span></div>
                     <div class="credential-field"><label>Password:</label> <span>
-                        <span id="pw-mask-${idx}" class="pw-mask" style="${this.isAdmin ? 'display:none;' : ''}">${this.isAdmin ? '' : '<i class=\'fas fa-lock\' title=\'Hidden\'></i>'}</span>
-                        <span id="pw-plain-${idx}" class="pw-plain" style="${this.isAdmin ? '' : 'display:none;'}">${this.escapeHtml(cred.password)}</span>
-                        <button class="view-pw-btn" data-idx="${idx}" aria-label="Show/Hide Password" title="Show/Hide Password" style="${this.isAdmin ? '' : ''}">
-                            <span class="eye-icon" id="eye-icon-${idx}">&#128065;</span>
-                        </button>
+                        ${this.isAdmin
+                            ? `<span id="pw-plain-${idx}" class="pw-plain">${this.escapeHtml(cred.password)}</span>`
+                            : `<i class='fas fa-lock' title='Admin access required'></i> <span style='color:#888;font-size:0.95em;'>(Admin only)</span>`}
+                        ${this.isAdmin
+                            ? `<button class="view-pw-btn" data-idx="${idx}" aria-label="Show/Hide Password" title="Show/Hide Password"><span class="eye-icon" id="eye-icon-${idx}">&#128065;</span></button>`
+                            : ''}
                     </span></div>
-                    <div class="credential-field"><label>Notes:</label> <span>${this.escapeHtml(cred.notes || '')}</span></div>
-                    <div class="credential-field">
-                        ${cred.image ? `<img src="${cred.image}" alt="Credential Image" class="credential-img" style="max-width:48px;max-height:48px;border-radius:6px;box-shadow:0 1px 4px #0002;" />` : ''}
-                    </div>
                     <div class="credential-actions">
                         <button class="copy-btn" data-value="${this.escapeHtml(cred.userName || cred.username)}" title="Copy Username">📋</button>
-                        <button class="copy-btn" data-value="${this.escapeHtml(cred.password)}" title="Copy Password">🔑</button>
-                        ${this.isAdmin ? `<button class="delete-btn" data-id="${cred._id}" title="Delete">🗑️</button>` : ''}
+                        ${this.isAdmin
+                            ? `<button class="delete-btn" data-id="${cred._id}" title="Delete">🗑️</button>`
+                            : `<button class="delete-btn" disabled title="Admin access required" style="opacity:0.5;cursor:not-allowed;">🗑️</button>`}
                     </div>
                 </div>
             `).join('')}
         </div>`;
         // Add event listeners for copy, view, and delete buttons
-        container.querySelectorAll('.view-pw-btn').forEach(btn => {
-            if (!this.isAdmin) {
-                btn.style.display = 'none';
-            } else {
-                btn.style.display = '';
-            }
-            btn.addEventListener('click', (e) => {
-                const idx = btn.dataset.idx;
-                if (!this.isAdmin) {
-                    this.showAdminLoginModal('view');
-                    return;
-                }
-                const mask = document.getElementById(`pw-mask-${idx}`);
-                const plain = document.getElementById(`pw-plain-${idx}`);
-                if (mask && plain) {
-                    if (mask.style.display === 'none') {
-                        mask.style.display = '';
-                        plain.style.display = 'none';
-                    } else {
-                        mask.style.display = 'none';
-                        plain.style.display = '';
+        if (this.isAdmin) {
+            container.querySelectorAll('.view-pw-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = btn.dataset.idx;
+                    const plain = document.getElementById(`pw-plain-${idx}`);
+                    if (plain) {
+                        plain.style.display = plain.style.display === 'none' ? '' : 'none';
                     }
-                }
+                });
             });
-        });
-        container.querySelectorAll('.delete-btn').forEach(btn => {
-            if (!this.isAdmin) {
-                btn.style.display = 'none';
-            } else {
-                btn.style.display = '';
-            }
-            btn.addEventListener('click', (e) => {
-                if (!this.isAdmin) {
-                    this.showAdminLoginModal('delete', btn.dataset.id);
-                    return;
-                }
-                const id = btn.dataset.id;
-                if (confirm('Are you sure you want to delete this credential?')) {
-                    this.api.deleteCredential(id).then(() => {
-                        this.showSuccess('Credential deleted successfully');
-                        this.loadCredentials();
-                    }).catch(() => {
-                        this.showError('Failed to delete credential');
-                    });
-                }
+            container.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = btn.dataset.id;
+                    if (id && confirm('Are you sure you want to delete this credential?')) {
+                        this.api.deleteCredential(id).then(() => {
+                            this.showSuccess('Credential deleted successfully');
+                            this.loadCredentials();
+                        }).catch(() => {
+                            this.showError('Failed to delete credential');
+                        });
+                    }
+                });
             });
-        });
+        }
         container.querySelectorAll('.copy-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 await this.copyToClipboard(btn.dataset.value);
