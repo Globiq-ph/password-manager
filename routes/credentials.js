@@ -97,7 +97,7 @@ router.get('/', async (req, res) => {
 });
 
 // Save new credential
-router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
+router.post('/', validateCredential, async (req, res) => {
     try {
         // Accept both 'username' and 'userName' for compatibility
         const { project, category, name, password, notes, image } = req.body;
@@ -107,7 +107,6 @@ router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
         }
         const encryptedPassword = JSON.stringify(await encrypt(password)); // Store as string
         const credential = new Credential({
-            userId: req.user.userId,
             project,
             category,
             name,
