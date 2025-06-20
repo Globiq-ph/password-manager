@@ -26,23 +26,6 @@ const requireAdminSession = (req, res, next) => {
     next();
 };
 
-// Middleware to ensure authentication
-const ensureAuthenticated = (req, res, next) => {
-    const userId = req.header('X-User-Id');
-    const userEmail = req.header('X-User-Email');
-    const userName = req.header('X-User-Name');
-    
-    if (!userId || !userEmail) {
-        return res.status(401).json({ 
-            error: 'Authentication required',
-            details: 'User ID and email are required in headers'
-        });
-    }
-
-    req.user = { userId, userEmail, userName: userName || 'Unknown User' };
-    next();
-};
-
 // Middleware to validate credential input
 const validateCredential = (req, res, next) => {
     // Accept both 'username' and 'userName' for compatibility
@@ -68,7 +51,7 @@ router.get('/debug/dbinfo', async (req, res) => {
     }
 });
 
-// Get all credentials for the user (return all, mask passwords for non-admin)
+// Get all credentials (admin sees passwords, others do not)
 router.get('/', async (req, res) => {
     console.log('GET /api/credentials called, X-Admin:', req.header('X-Admin'));
     try {
@@ -123,18 +106,14 @@ router.post('/', validateCredential, async (req, res) => {
     }
 });
 
-// Update credential
-router.put('/:id', validateCredential, async (req, res) => {
+// Update credential (admin only)
+router.put('/:id', requireAdminSession, validateCredential, async (req, res) => {
     try {
-        const userId = req.header('X-User-Id');
         const { project, category, name, username, password, status, isAdminOnly, image } = req.body;
-
-        const credential = await Credential.findOne({ _id: req.params.id, userId });
-        
+        const credential = await Credential.findOne({ _id: req.params.id });
         if (!credential) {
             return res.status(404).json({ error: 'Credential not found' });
         }
-
         credential.project = project;
         credential.category = category;
         credential.name = name;
@@ -144,9 +123,7 @@ router.put('/:id', validateCredential, async (req, res) => {
         credential.isAdminOnly = isAdminOnly;
         credential.updatedAt = new Date();
         if (image !== undefined) credential.image = image;
-
         await credential.save();
-
         res.json({
             message: 'Credential updated successfully',
             credential: {
@@ -160,7 +137,7 @@ router.put('/:id', validateCredential, async (req, res) => {
     }
 });
 
-// Delete credential
+// Delete credential (admin only)
 router.delete('/:id', requireAdminSession, async (req, res) => {
     try {
         const id = req.params.id;
@@ -175,31 +152,24 @@ router.delete('/:id', requireAdminSession, async (req, res) => {
     }
 });
 
-// Share credential
+// Share credential (no userId required)
 router.post('/:id/share', async (req, res) => {
     try {
-        const userId = req.header('X-User-Id');
         const { shareWith } = req.body;
-
         if (!shareWith) {
             return res.status(400).json({ error: 'Email address required' });
         }
-
-        const credential = await Credential.findOne({ _id: req.params.id, userId });
-        
+        const credential = await Credential.findOne({ _id: req.params.id });
         if (!credential) {
             return res.status(404).json({ error: 'Credential not found' });
         }
-
         if (!credential.sharedWith) {
             credential.sharedWith = [];
         }
-
         if (!credential.sharedWith.includes(shareWith)) {
             credential.sharedWith.push(shareWith);
             await credential.save();
         }
-
         res.json({ message: 'Credential shared successfully' });
     } catch (error) {
         console.error('Error sharing credential:', error);

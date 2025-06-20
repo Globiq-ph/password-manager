@@ -48,50 +48,6 @@ const activityLogSchema = new mongoose.Schema({
 const Admin = mongoose.model('Admin', adminSchema);
 const ActivityLog = mongoose.model('ActivityLog', activityLogSchema);
 
-// Middleware to check if user is admin
-const isAdmin = async (req, res, next) => {
-    try {
-        const userId = req.header('X-User-Id');
-        const admin = await Admin.findOne({ userId });
-        
-        if (!admin || !admin.isActive) {
-            return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
-        }
-        
-        req.admin = admin;
-        next();
-    } catch (error) {
-        console.error('Admin check error:', error);
-        res.status(500).json({ error: 'Error checking admin status' });
-    }
-};
-
-// Middleware to check admin status
-const adminAuthMiddleware = async (req, res, next) => {
-    try {
-        const userId = req.header('X-User-Id');
-        const userEmail = req.header('X-User-Email');
-
-        if (!userId || !userEmail) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-
-        const admin = await Admin.findOne({ 
-            userEmail: userEmail,
-            isActive: true 
-        });
-
-        if (!admin) {
-            return res.status(403).json({ message: 'Admin access required' });
-        }
-
-        req.admin = { userId, userEmail };
-        next();
-    } catch (err) {
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
 // Log activity
 const logActivity = async (userId, action, details) => {
     try {
@@ -101,31 +57,22 @@ const logActivity = async (userId, action, details) => {
     }
 };
 
-// Route to check admin status
+// Route to check admin status (now based on X-Admin header)
 router.get('/check', (req, res) => {
-    const userEmail = req.header('X-User-Email');
-    const adminEmails = ['dev@globiq.com', 'admin@globiq.com'];
-    res.json({ isAdmin: adminEmails.includes(userEmail) });
+    const isAdmin = req.header('X-Admin') === 'true';
+    res.json({ isAdmin });
 });
 
-// Get admin status
+// Get admin status (legacy, not used by frontend)
 router.get('/status', async (req, res) => {
-    try {
-        const userId = req.header('X-User-Id');
-        const admin = await Admin.findOne({ userId });
-        res.json({ 
-            isAdmin: !!admin && admin.isActive,
-            role: admin ? admin.role : null
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
-    }
+    res.json({ isAdmin: false, role: null });
 });
 
 // Admin logout
-router.post('/logout', adminAuthMiddleware, async (req, res) => {
+router.post('/logout', async (req, res) => {
     try {
-        await logActivity(req.admin.userId, 'LOGOUT', { timestamp: new Date() });
+        const userId = req.header('X-User-Id');
+        await logActivity(userId, 'LOGOUT', { timestamp: new Date() });
         res.json({ message: 'Logged out successfully' });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
@@ -133,7 +80,7 @@ router.post('/logout', adminAuthMiddleware, async (req, res) => {
 });
 
 // Get activity logs
-router.get('/activity-logs', adminAuthMiddleware, async (req, res) => {
+router.get('/activity-logs', async (req, res) => {
     try {
         const logs = await ActivityLog.find()
             .sort({ timestamp: -1 })
@@ -145,7 +92,7 @@ router.get('/activity-logs', adminAuthMiddleware, async (req, res) => {
 });
 
 // Get all credentials (admin only)
-router.get('/credentials', adminAuthMiddleware, async (req, res) => {
+router.get('/credentials', async (req, res) => {
     try {
         const credentials = await Credential.find({});
         res.json(credentials);
@@ -155,7 +102,7 @@ router.get('/credentials', adminAuthMiddleware, async (req, res) => {
 });
 
 // Get usage statistics
-router.get('/stats', adminAuthMiddleware, async (req, res) => {
+router.get('/stats', async (req, res) => {
     try {
         const totalCredentials = await Credential.countDocuments();
         const projectStats = await Credential.aggregate([
@@ -172,7 +119,7 @@ router.get('/stats', adminAuthMiddleware, async (req, res) => {
 });
 
 // Add new admin
-router.post('/', adminAuthMiddleware, async (req, res) => {
+router.post('/', async (req, res) => {
     try {
         const { userId, userName, userEmail } = req.body;
 
@@ -197,7 +144,7 @@ router.post('/', adminAuthMiddleware, async (req, res) => {
 });
 
 // Update admin status
-router.put('/:userId', adminAuthMiddleware, async (req, res) => {
+router.put('/:userId', async (req, res) => {
     try {
         const { isActive } = req.body;
         
@@ -218,7 +165,7 @@ router.put('/:userId', adminAuthMiddleware, async (req, res) => {
 });
 
 // Get admin users
-router.get('/users', adminAuthMiddleware, async (req, res) => {
+router.get('/users', async (req, res) => {
     try {
         const admins = await Admin.find({}, { userId: 1, userName: 1, userEmail: 1, role: 1, lastLogin: 1, isActive: 1 });
         res.json(admins);
@@ -228,7 +175,7 @@ router.get('/users', adminAuthMiddleware, async (req, res) => {
 });
 
 // Update admin user
-router.put('/users/:userId', adminAuthMiddleware, async (req, res) => {
+router.put('/users/:userId', async (req, res) => {
     try {
         const { role, isActive } = req.body;
         const admin = await Admin.findOneAndUpdate(
@@ -249,7 +196,7 @@ router.put('/users/:userId', adminAuthMiddleware, async (req, res) => {
 });
 
 // Delete admin
-router.delete('/:userId', adminAuthMiddleware, async (req, res) => {
+router.delete('/:userId', async (req, res) => {
     try {
         // Prevent deleting the last admin
         const adminCount = await Admin.countDocuments();
@@ -274,7 +221,7 @@ router.delete('/:userId', adminAuthMiddleware, async (req, res) => {
 });
 
 // Get system stats
-router.get('/stats', isAdmin, async (req, res) => {
+router.get('/stats', async (req, res) => {
     try {
         const totalCredentials = await Credential.countDocuments();
         const credentialsByProject = await Credential.aggregate([
@@ -296,7 +243,7 @@ router.get('/stats', isAdmin, async (req, res) => {
 });
 
 // Get users with credential counts
-router.get('/users', isAdmin, async (req, res) => {
+router.get('/users', async (req, res) => {
     try {
         const users = await Credential.aggregate([
             { $group: { 

@@ -13,6 +13,17 @@ class CredentialManager {
     setAdminState(isAdmin) {
         localStorage.setItem('isAdmin', isAdmin ? 'true' : 'false');
         this.isAdmin = isAdmin;
+        // Instantly update UI on admin state change
+        const adminLoginBox = document.getElementById('adminLoginBox');
+        const adminLogoutBox = document.getElementById('adminLogoutBox');
+        if (isAdmin) {
+            if (adminLoginBox) adminLoginBox.style.display = 'none';
+            if (adminLogoutBox) adminLogoutBox.style.display = 'block';
+        } else {
+            if (adminLoginBox) adminLoginBox.style.display = 'block';
+            if (adminLogoutBox) adminLogoutBox.style.display = 'none';
+        }
+        this.loadCredentials();
     }
 
     initializeEventListeners() {
@@ -85,9 +96,6 @@ class CredentialManager {
                 if (username === 'admin123' && password === 'adminpassword') {
                     this.setAdminState(true);
                     this.showSuccess('Admin login successful!');
-                    if (adminLoginBox) adminLoginBox.style.display = 'none';
-                    if (adminLogoutBox) adminLogoutBox.style.display = 'block';
-                    this.loadCredentials();
                 } else {
                     this.setAdminState(false);
                     this.showError('Invalid admin credentials.');
@@ -100,9 +108,6 @@ class CredentialManager {
                 btn.addEventListener('click', () => {
                     this.setAdminState(false);
                     this.showSuccess('Logged out as admin.');
-                    if (adminLoginBox) adminLoginBox.style.display = 'block';
-                    if (adminLogoutBox) adminLogoutBox.style.display = 'none';
-                    this.loadCredentials();
                 });
             }
         }
@@ -110,13 +115,7 @@ class CredentialManager {
         const viewTab = document.querySelector('[data-tab="viewCredentials"]');
         if (viewTab) {
             viewTab.addEventListener('click', () => {
-                if (this.isAdmin) {
-                    if (adminLoginBox) adminLoginBox.style.display = 'none';
-                    if (adminLogoutBox) adminLogoutBox.style.display = 'block';
-                } else {
-                    if (adminLoginBox) adminLoginBox.style.display = 'block';
-                    if (adminLogoutBox) adminLogoutBox.style.display = 'none';
-                }
+                this.setAdminState(this.getAdminState()); // Always update UI on tab click
             });
         }
     }
@@ -245,9 +244,14 @@ class CredentialManager {
             }
             await this.api.saveCredential(formData);
             document.getElementById('credentialForm').reset();
-            document.getElementById('imagePreview').innerHTML = '';
+            // Reset QR preview and generated QR (if any)
+            const imagePreview = document.getElementById('imagePreview');
+            if (imagePreview) imagePreview.innerHTML = '';
             const removeQRBtn = document.getElementById('removeQRBtn');
             if (removeQRBtn) removeQRBtn.style.display = 'none';
+            // Also clear any generated QR code preview (if you have a separate element for generated QR)
+            const generatedQR = document.getElementById('generatedQR');
+            if (generatedQR) generatedQR.innerHTML = '';
             await this.loadCredentials();
             this.showSuccess('Credential saved successfully');
         } catch (error) {
