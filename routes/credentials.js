@@ -39,35 +39,31 @@ const ensureAuthenticated = (req, res, next) => {
 router.get('/', ensureAuthenticated, async (req, res) => {
     try {
         const { userId, userEmail } = req.user;
-
         const query = {
             $or: [
                 { userId },
                 { sharedWith: userEmail }
             ]
         };
-
         const credentials = await Credential.find(query);
-        
         // Decrypt passwords for authorized credentials
         const decryptedCredentials = credentials.map(cred => {
             const decrypted = { ...cred.toObject() };
             try {
                 if (cred.encryptedPassword) {
-                    decrypted.password = decrypt(cred.encryptedPassword);
+                    decrypted.password = decrypt(JSON.parse(cred.encryptedPassword));
                 }
             } catch (error) {
-                console.error('Decryption error:', error);
+                console.error('Decryption error for credential:', cred._id, error);
                 decrypted.password = '**ENCRYPTION ERROR**';
             }
             delete decrypted.encryptedPassword;
             return decrypted;
         });
-
         res.json(decryptedCredentials);
     } catch (error) {
         console.error('Error fetching credentials:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', details: error.message, stack: error.stack });
     }
 });
 
@@ -78,9 +74,9 @@ router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
         if (!username || !password) {
             return res.status(400).json({ error: 'Username and password are required.' });
         }
-        const encryptedPassword = await encrypt(password);
+        const encryptedPassword = JSON.stringify(await encrypt(password)); // Store as string
         const credential = new Credential({
-            userId: req.user.userId, // Ensure userId is set for query matching
+            userId: req.user.userId,
             project,
             category,
             name,
