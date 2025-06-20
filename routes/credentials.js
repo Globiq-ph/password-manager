@@ -74,42 +74,24 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 // Save new credential
 router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
     try {
-        const { userId, userName } = req.user;
         const { project, category, name, username, password, notes } = req.body;
-
-        // Encrypt the password
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required.' });
+        }
         const encryptedPassword = await encrypt(password);
-
         const credential = new Credential({
-            userId,
-            userName,
             project,
             category,
             name,
-            username,
+            userName: username,
             encryptedPassword,
-            notes,
-            status: 'active'
+            notes
         });
-
         await credential.save();
-
-        res.status(201).json({
-            message: 'Credential saved successfully',
-            credential: {
-                id: credential._id,
-                project: credential.project,
-                category: credential.category,
-                name: credential.name,
-                username: credential.username
-            }
-        });
-    } catch (error) {
-        console.error('Error saving credential:', error);
-        res.status(500).json({ 
-            error: 'Error saving credential',
-            details: error.message
-        });
+        res.status(201).json({ message: 'Credential saved successfully.' });
+    } catch (err) {
+        console.error('Error saving credential:', err);
+        res.status(500).json({ error: 'Error saving credential.' });
     }
 });
 
