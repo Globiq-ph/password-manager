@@ -151,25 +151,13 @@ router.put('/:id', validateCredential, async (req, res) => {
 // Delete credential
 router.delete('/:id', ensureAdmin, async (req, res) => {
     try {
-        const userId = req.header('X-User-Id');
         const id = req.params.id;
-        console.log('[DELETE] X-User-Id header:', userId);
-        console.log('[DELETE] _id param:', id);
-        // Try to find by _id and userId
-        const credential = await Credential.findOne({ _id: id, userId });
-        console.log('[DELETE] findOne({_id, userId}) result:', credential);
+        // Only require _id for admin delete
+        const credential = await Credential.findOne({ _id: id });
         if (credential) {
             await credential.deleteOne();
-            console.log('[DELETE] Deleted by _id and userId');
+            console.log('[DELETE] Deleted by _id');
             return res.json({ message: 'Credential deleted successfully' });
-        }
-        // Try to find by _id only (legacy)
-        const legacy = await Credential.findOne({ _id: id });
-        console.log('[DELETE] findOne({_id}) result:', legacy);
-        if (legacy) {
-            await legacy.deleteOne();
-            console.log('[DELETE] Deleted legacy credential by _id only');
-            return res.json({ message: 'Legacy credential deleted (no userId)' });
         }
         console.warn('[DELETE] Credential not found for _id:', id);
         res.status(404).json({ error: 'Credential not found' });
