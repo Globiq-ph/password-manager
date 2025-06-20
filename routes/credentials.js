@@ -32,6 +32,23 @@ const requireAdminSession = (req, res, next) => {
     next();
 };
 
+// Middleware to ensure authentication
+const ensureAuthenticated = (req, res, next) => {
+    const userId = req.header('X-User-Id');
+    const userEmail = req.header('X-User-Email');
+    const userName = req.header('X-User-Name');
+    
+    if (!userId || !userEmail) {
+        return res.status(401).json({ 
+            error: 'Authentication required',
+            details: 'User ID and email are required in headers'
+        });
+    }
+
+    req.user = { userId, userEmail, userName: userName || 'Unknown User' };
+    next();
+};
+
 // Debug: Log current database and collection name
 router.get('/debug/dbinfo', async (req, res) => {
     try {
