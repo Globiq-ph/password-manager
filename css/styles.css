@@ -1,5 +1,54 @@
 /* Global styles are already in index.html */
 
+body {
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    min-height: 100vh;
+    margin: 0;
+    color: #222;
+}
+
+.app-title {
+    text-align: center;
+    font-size: 2.5em;
+    font-weight: 700;
+    margin: 40px 0 20px 0;
+    color: #2563eb;
+    letter-spacing: 1px;
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.tab {
+    background: #fff;
+    color: #2563eb;
+    padding: 12px 28px;
+    border-radius: 8px 8px 0 0;
+    font-size: 1.1em;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.tab.active, .tab:hover {
+    background: #2563eb;
+    color: #fff;
+}
+
+.tab-content {
+    max-width: 900px;
+    margin: 0 auto 40px auto;
+    background: #fff;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    padding: 32px 24px 24px 24px;
+}
+
 .password-strength-indicator {
     margin-top: 5px;
     padding: 5px;
@@ -34,12 +83,10 @@
 }
 
 .credential-form {
-    max-width: 600px;
-    margin: 20px auto;
-    padding: 20px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: #f1f5f9;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    padding: 32px 24px;
 }
 
 .form-group {
@@ -50,34 +97,49 @@
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+    font-size: 1.08em;
+    color: #2563eb;
 }
 
 .form-group input,
 .form-group textarea {
     width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 1.08em;
+    margin-top: 4px;
+    margin-bottom: 12px;
+    background: #fff;
+    transition: border 0.2s;
 }
 
 .form-group textarea {
     min-height: 100px;
 }
 
+input:focus, textarea:focus {
+    border: 1.5px solid #2563eb;
+    outline: none;
+}
+
 button[type="submit"] {
     width: 100%;
     padding: 10px;
-    background-color: #007bff;
-    color: white;
+    background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+    color: #fff;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 button[type="submit"]:hover {
-    background-color: #0056b3;
+    background: linear-gradient(90deg, #1d4ed8 60%, #2563eb 100%);
 }
 
 .credentials-table {
@@ -85,7 +147,9 @@ button[type="submit"]:hover {
     border-collapse: collapse;
     margin: 20px 0;
     background: #fff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .credentials-table th,
@@ -93,12 +157,13 @@ button[type="submit"]:hover {
     padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid #ddd;
+    font-size: 1.05em;
 }
 
 .credentials-table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    color: #495057;
+    background: #f1f5f9;
+    color: #2563eb;
+    font-size: 1.1em;
 }
 
 .credentials-table tr:hover {
@@ -116,31 +181,32 @@ button[type="submit"]:hover {
 
 .copy-btn,
 .delete-btn {
-    padding: 6px 12px;
+    padding: 8px 18px;
     margin: 0 4px;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
+    font-size: 1em;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .copy-btn {
-    background-color: #28a745;
-    color: white;
+    background: #22c55e;
+    color: #fff;
 }
 
 .copy-btn:hover {
-    background-color: #218838;
+    background: #16a34a;
 }
 
 .delete-btn {
-    background-color: #dc3545;
-    color: white;
+    background: #ef4444;
+    color: #fff;
 }
 
 .delete-btn:hover {
-    background-color: #c82333;
+    background: #b91c1c;
 }
 
 .error {
@@ -228,9 +294,10 @@ button[type="submit"]:hover {
 .alert {
     padding: 12px 20px;
     margin-bottom: 10px;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     animation: slideIn 0.3s ease-out;
+    font-size: 1.1em;
 }
 
 .alert-success {
@@ -247,8 +314,9 @@ button[type="submit"]:hover {
 
 .no-credentials {
     text-align: center;
-    padding: 20px;
-    color: #6c757d;
+    padding: 24px 0;
+    color: #64748b;
+    font-size: 1.1em;
     font-style: italic;
 }
 
@@ -261,4 +329,13 @@ button[type="submit"]:hover {
         transform: translateX(0);
         opacity: 1;
     }
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    background: #e5e7eb;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 8px;
 }

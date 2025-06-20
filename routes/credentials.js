@@ -96,7 +96,7 @@ router.post('/', ensureAuthenticated, validateCredential, async (req, res) => {
             project,
             category,
             name,
-            userName: username,
+            userName: username, // Always store as userName
             encryptedPassword,
             notes
         });

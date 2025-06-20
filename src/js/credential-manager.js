@@ -115,13 +115,13 @@ class CredentialManager {
                 project: document.getElementById('project').value,
                 category: document.getElementById('category').value,
                 name: document.getElementById('name').value,
-                userName: document.getElementById('username').value, // CHANGED from 'username' to 'userName'
+                username: document.getElementById('username').value, // revert to 'username' for backend compatibility
                 password: document.getElementById('password').value,
                 notes: document.getElementById('notes').value || ''
             };
 
             // Validate required fields
-            if (!formData.project || !formData.category || !formData.name || !formData.userName || !formData.password) {
+            if (!formData.project || !formData.category || !formData.name || !formData.username || !formData.password) {
                 throw new Error('Please fill in all required fields');
             }
 
