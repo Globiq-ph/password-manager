@@ -240,9 +240,18 @@ class CredentialManager {
     }
 
     showAlert(alertElement) {
-        const container = document.querySelector('.alert-container') || document.body;
+        let container = document.querySelector('.alert-container');
+        if (!container) {
+            container = document.body;
+        }
+        // Remove any existing alerts first
+        const existing = container.querySelectorAll('.alert');
+        existing.forEach(el => el.remove());
+        alertElement.style.pointerEvents = 'auto';
         container.appendChild(alertElement);
-        setTimeout(() => alertElement.remove(), 3000);
+        setTimeout(() => {
+            alertElement.remove();
+        }, 3000);
     }
 
     async copyToClipboard(text) {

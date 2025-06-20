@@ -804,7 +804,7 @@
     </div>
 
     <!-- Alert Box for Messages -->
-    <div class="alert" style="display: none;"></div>
+    <div class="alert-container" style="position:fixed;top:24px;left:0;width:100%;z-index:999;display:flex;justify-content:center;pointer-events:none;"></div>
 
     <h1 class="app-title">GlobiQ Password Manager</h1>
 
@@ -874,9 +874,7 @@
                 <option value="All">All Categories</option>
             </select>
         </div>
-        <div id="passwordList" class="credentials-grid">
-            <!-- Credentials will be populated here -->
-        </div>
+        <div id="passwordList" class="credentials-table-container" style="margin-top:24px;"></div>
     </div>
 
     <!-- Admin Panel Tab -->
