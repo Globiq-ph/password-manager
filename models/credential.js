@@ -39,7 +39,7 @@ const credentialSchema = new mongoose.Schema({
     },
     userId: {
         type: String,
-        required: true
+        required: false // Made optional to allow saving credentials without authentication
     }
 });
 
