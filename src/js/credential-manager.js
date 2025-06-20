@@ -111,6 +111,17 @@ class CredentialManager {
                         this.isAdmin = true;
                         this.toggleAdminUI();
                         this.showSuccess('Admin login successful!');
+                        // Switch to View Credentials tab after admin login
+                        const tabs = document.querySelectorAll('.tab');
+                        const tabContents = document.querySelectorAll('.tab-content');
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tabContents.forEach(c => c.classList.remove('active'));
+                        const viewTab = document.querySelector('.tab[data-tab="viewCredentials"]');
+                        const viewContent = document.getElementById('viewCredentials');
+                        if (viewTab && viewContent) {
+                            viewTab.classList.add('active');
+                            viewContent.classList.add('active');
+                        }
                     } else {
                         sessionStorage.removeItem('isAdmin');
                         this.isAdmin = false;
