@@ -61,7 +61,7 @@ async function checkAdminStatus() {
 async function loadCredentials() {
     try {
         const credentials = await window.api.getAllCredentials();
-        const container = document.getElementById('viewCredentials');
+        const container = document.getElementById('passwordList'); // CHANGED from 'viewCredentials' to 'passwordList'
         
         if (!container) {
             console.error('Credentials container not found');
@@ -111,7 +111,7 @@ async function loadCredentials() {
         addCredentialButtonListeners();
     } catch (error) {
         console.error('Error loading credentials:', error);
-        document.getElementById('viewCredentials').innerHTML = 
+        document.getElementById('passwordList').innerHTML = 
             '<p class="error">Error loading credentials. Please try again later.</p>';
     }
 }

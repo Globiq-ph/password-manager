@@ -61,7 +61,7 @@ class CredentialManager {
     }
 
     displayCredentials(credentials) {
-        const container = document.getElementById('credentialsContainer');
+        const container = document.getElementById('passwordList'); // CHANGED from 'credentialsContainer' to 'passwordList'
         if (!container) return;
 
         if (!credentials || credentials.length === 0) {
